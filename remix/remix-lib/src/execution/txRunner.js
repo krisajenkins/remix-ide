@@ -6,6 +6,9 @@ var BN = ethJSUtil.BN
 var executionContext = require('./execution-context')
 var EventManager = require('../eventManager')
 
+// window['EthJSTX'] = EthJSTX
+// window['BN'] = ethJSUtil.BN
+
 function TxRunner (vmaccounts, api) {
   this.event = new EventManager()
   this._api = api
@@ -55,8 +58,28 @@ TxRunner.prototype._sendTransaction = function (sendTx, tx, pass, callback) {
   try {
     console.log('@TxRunner.prototype._sendTransaction', args)
     console.log(sendTx)
-    window['sendTx'] = sendTx
-    tx['chainId'] = '61'
+    // @rv: kevm testnet 
+    if (executionContext.getProvider() === 'kevm-testnet') {
+      const privateKey = Buffer.from('464ea8983cec61de372c0114132cdfe6147efdffe8ae91df807df53c9336a72a', 'hex')
+      const nonce = executionContext.web3().eth.getTransactionCount(tx.from, "latest")
+      console.log('* nonce: ', nonce)
+      const newTx = {
+        nonce: new BN(nonce),
+        gasPrice: new BN(5000000000), // 5 gwei
+        gasLimit: new BN(/*tx.gas*/3000000),
+        to: tx.to,
+        value: new BN(parseInt(tx.value) || 0, 10),
+        data: new Buffer(tx.data.slice(2), 'hex'),
+        // chainId: 0x3d  // <= this will give me error.
+      }
+      const ethTx = new EthJSTX(newTx)
+      ethTx.sign(privateKey)
+      window['ethTx'] = ethTx
+      const serializedTx = ethTx.serialize()  
+      args = ["0x" + serializedTx.toString('hex'), cb]
+      console.log('* binary data: ', "0x" + serializedTx.toString('hex'))
+      sendTx = executionContext.web3().eth.sendRawTransaction
+    }
     sendTx.apply({}, args)
   } catch (e) {
     return callback(`Send transaction failed: ${e.message} . if you use an injected provider, please check it is properly unlocked. `)

@@ -108,6 +108,8 @@ UniversalDApp.prototype.getAccounts = function (cb) {
     // See: https://github.com/ethereum/web3.js/issues/442
     if (this._api.personalMode()) {
       executionContext.web3().personal.getListAccounts(cb)
+    } else if (executionContext.getProvider() === 'kevm-testnet') { // @rv: kevm testnet
+      cb(null, ['0xf49b5751f0bda07f11663d8de48062a340297036'])
     } else {
       executionContext.web3().eth.getAccounts(cb)
     }

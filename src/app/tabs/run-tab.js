@@ -133,11 +133,7 @@ function runTab (appAPI = {}, appEvents = {}, opts = {}) {
       }, setFinalContext)
     }, (alertMsg) => {
       modalDialogCustom.alert(alertMsg)
-    }, setFinalContext/*, 
-    (context)=> { // rvCb
-      console.log('@rvCb: ', context)
-      setFinalContext()
-    }*/)
+    }, setFinalContext)
   })
 
   selectExEnv.value = executionContext.getProvider()
@@ -162,28 +158,20 @@ function runTab (appAPI = {}, appEvents = {}, opts = {}) {
 
 function fillAccountsList (appAPI, opts, container) {
   var $txOrigin = $(container.querySelector('#txorigin'))
-  if (executionContext.getProvider() === 'kevm-testnet') { // cardano kevm testnet
-    $txOrigin.hide()
-  } else {
-    $txOrigin.show()
-    $txOrigin.empty()
-    opts.udapp.getAccounts((err, accounts) => {
-      if (err) { addTooltip(`Cannot get account list: ${err}`) }
-      if (accounts && accounts[0]) {
-        for (var a in accounts) { $txOrigin.append($('<option />').val(accounts[a]).text(accounts[a])) }
-        $txOrigin.val(accounts[0])
-      } else {
-        $txOrigin.val('unknown')
-      }
-    })
-  }
+  $txOrigin.empty()
+  opts.udapp.getAccounts((err, accounts) => {
+    if (err) { addTooltip(`Cannot get account list: ${err}`) }
+    if (accounts && accounts[0]) {
+      for (var a in accounts) { $txOrigin.append($('<option />').val(accounts[a]).text(accounts[a])) }
+      $txOrigin.val(accounts[0])
+    } else {
+      $txOrigin.val('unknown')
+    }
+  })
 }
 
 function updateAccountBalances (container, appAPI) {
   var $txOrigin = $(container.querySelector('#txorigin'))
-  if (executionContext.getProvider() === 'kevm-testnet') { // cardano kevm testnet
-    return
-  }
   var accounts = $txOrigin.children('option')
   accounts.each(function (index, value) {
     (function (acc) {
@@ -296,7 +284,6 @@ function contractDropdown (events, appAPI, appEvents, opts, self) {
   instanceContainer.appendChild(self._view.noInstancesText)
   var compFails = yo`<i title="Contract compilation failed. Please check the compile tab for more information." class="fa fa-times-circle ${css.errorIcon}" ></i>`
   appEvents.compiler.register('compilationFinished', function (success, data, source) {
-    console.log('@run-tab.js compilationFinished:\n', success, data, source)
     // TODO: @rv support .iele
     if (!source.target.endsWith('.sol')) {return;}
     getContractNames(success, data)
@@ -458,7 +445,6 @@ function settings (container, appAPI, appEvents, opts) {
   const updateNetwork = () => {
     executionContext.detectNetwork((err, { id, name } = {}) => {
       if (err) {
-        console.error(err)
         net.innerHTML = 'can\'t detect network '
       } else {
         net.innerHTML = `<i class="${css.networkItem} fa fa-plug" aria-hidden="true"></i> ${name} (${id || '-'})`
@@ -477,12 +463,10 @@ function settings (container, appAPI, appEvents, opts) {
             title="Execution environment does not connect to any node, everything is local and in memory only."
             value="vm" checked name="executionContext"> JavaScript VM
           </option>
-          <!--
           <option id="kevm-testnet-mode"
             title="KEVM Testnet"
             value="kevm-testnet" name="executionContext"> KEVM Testnet
           </option>
-          -->
           <option id="injected-mode"
             title="Execution environment has been provided by Metamask or similar provider."
             value="injected" name="executionContext"> Injected Web3

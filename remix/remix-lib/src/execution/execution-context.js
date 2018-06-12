@@ -119,6 +119,7 @@ function ExecutionContext () {
         else if (id === '3') name = 'Ropsten'
         else if (id === '4') name = 'Rinkeby'
         else if (id === '42') name = 'Kovan'
+        else if (id === '13137357') name = 'Goguen' // @rv: add Goguen
         else name = 'Custom'
 
         if (id === '1') {
@@ -161,9 +162,7 @@ function ExecutionContext () {
       })
       self.event.trigger('contextChanged', ['vm'])
       return cb()
-    }
-
-    if (context === 'injected') {
+    } else if (context === 'injected') {
       if (injectedProvider === undefined) {
         var alertMsg = 'No injected Web3 provider found. '
         alertMsg += 'Make sure your provider (e.g. MetaMask) is active and running '
@@ -177,10 +176,13 @@ function ExecutionContext () {
         self.event.trigger('contextChanged', ['injected'])
         return cb()
       }
-    }
-
-    if (context === 'web3') {
+    } else if (context === 'web3') {
       confirmCb(cb)
+    } else if (context === 'kevm-testnet') {
+      executionContext = context
+      web3.setProvider(new web3.providers.HttpProvider('https://kevm-testnet.iohkdev.io:8546'))
+      self.event.trigger('contextChanged', ['kevm-testnet'])
+      return cb()
     }
   }
 
@@ -247,7 +249,8 @@ var transactionDetailsLinks = {
   'Main': 'https://www.etherscan.io/tx/',
   'Rinkeby': 'https://rinkeby.etherscan.io/tx/',
   'Ropsten': 'https://ropsten.etherscan.io/tx/',
-  'Kovan': 'https://kovan.etherscan.io/tx/'
+  'Kovan': 'https://kovan.etherscan.io/tx/',
+  'Goguen': 'https://kevm-testnet.iohkdev.io/transaction/'
 }
 
 module.exports = new ExecutionContext()
