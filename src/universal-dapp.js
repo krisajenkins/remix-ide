@@ -424,7 +424,7 @@ UniversalDApp.prototype.runTx = function (args, cb) {
  */
 UniversalDApp.prototype.removeAccount = function(address, cb) {
   const accounts = this._api.config.get('rv-accounts') || []
-  this._api.config.set('rv-accounts', accounts.filter((x)=> typeof(x) === 'object' && x.address !== address)) // remove address from accounts
+  this._api.config.set('rv-accounts', accounts.filter((x)=> typeof(x) === 'object' && x.address !== address.replace(/^0x/, ''))) // remove address from accounts
   return cb(null)
 }
 
@@ -503,16 +503,29 @@ UniversalDApp.prototype.importAccount = function(cb) {
   }
 
   modalCustom.importAccount((error, {privateKey, password, keystore})=> {
-    console.log('@UniversalDApp.prototype.importAccount: ', error, privateKey, password)
-    if (privateKey) {
+    if (error) {
+      return cb(error)
+    } else if (privateKey) {
       privateKey = privateKey.replace(/^0x/, '')
       keythereum.create(undefined, (dk)=> {
         keythereum.dump(password, privateKey, dk.salt, dk.iv, undefined, (keystore)=> {
-          _saveKeystore(keystore)
+          _saveKeystore(keystore, password)
         })
       })
     } else if (keystore) {
-
+      try {
+        keystore = JSON.parse(keystore)
+        keythereum.recover(password, keystore, (privateKey)=> { // Check if the password is valid
+          if (privateKey.toString('hex').length !== 64) { // Invalid privateKey
+            const error = privateKey
+            return cb(error)
+          } else {
+            _saveKeystore(keystore, password)
+          }
+        })
+      } catch(error) {
+        return cb(error)
+      }
     } else {
       return cb('Internal Error')
     }

@@ -89,27 +89,78 @@ module.exports = {
    */
   importAccount: function(cb) {
     const importPanel = yo`<div>
+    <div>
+      <span>Select Type</span>
+      <select id="import-type-select" value="private-key">
+        <option value="private-key" checked>Private Key</option>
+        <option value="json-file">JSON File</option>
+      </select>
+    </div>
+    <br>
     <div id="private-key-import">
       <input id="private-key-input" type="text" name='prompt_text' class="${css['prompt_text']}" placeholder="paste your private key here" >
       <br><br>
-      <input id="password-input" type="password" name='prompt_text' class="${css['prompt_text']}" placeholder="enter your new password to protect your account" >
+      <input id="password-input" type="password" name='prompt_text' class="${css['prompt_text']}" placeholder="enter a new password to protect your account" >
     </div>
-    <div id="json-import"></div>
+    <div id="json-file-import">
+      <span>Upload JSON file <input type="file" id="json-file-input" style="display:block;" /></span>
+      <br>
+      <input id="password-input-2" type="password" name='prompt_text' class="${css['prompt_text']}" placeholder="enter password" >
+    </div>
   </div>`
+
+    const select = importPanel.querySelector('#import-type-select') 
+    function selectImportType() {
+      const importType = select.value
+      console.log('selectImportType: ', importType)
+      if (importType === 'private-key') {
+        importPanel.querySelector('#private-key-import').style.display = "block"
+        importPanel.querySelector('#json-file-import').style.display = "none"
+      } else {
+        importPanel.querySelector('#private-key-import').style.display = "none"
+        importPanel.querySelector('#json-file-import').style.display = "block"
+      }
+    }
+    select.onchange = selectImportType
+    selectImportType()
+
+    const jsonFileInput = importPanel.querySelector('#json-file-input')
+    let file = null
+    jsonFileInput.onchange = function(event) {
+      file = event.target.files[0]
+    }
+
     modal(`Import account`, importPanel, {
       label: 'Import',
       fn: ()=> {
-        const privateKey = importPanel.querySelector('#private-key-input').value
-        const password = importPanel.querySelector('#password-input').value
-        return cb(null, {
-          privateKey, 
-          password
-        })
+        if (select.value === 'private-key') {
+          const privateKey = importPanel.querySelector('#private-key-input').value
+          const password = importPanel.querySelector('#password-input').value
+          return cb(null, {
+            privateKey, 
+            password
+          })
+        } else {
+          if (!file) {
+            return cb('No JSON file uploaded', {})
+          }
+
+          const password = importPanel.querySelector('#password-input-2').value
+          const fileReader = new FileReader()
+          fileReader.onload = function(event) {
+            const keystore = event.target.result
+            return cb(null, {
+              keystore,
+              password
+            })
+          }
+          fileReader.readAsText(file)
+        }
       }
     }, {
       label: 'Cancel',
       fn: ()=> {
-        return cb('Import cancelled', null)
+        return cb('Import cancelled', {})
       }
     })
   }

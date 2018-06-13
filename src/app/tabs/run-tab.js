@@ -554,19 +554,13 @@ function settings (container, appAPI, appEvents, opts) {
 
   // @rv: import account
   function importAccount() {
-    const $txOrigin = $('#txorigin')
-    const address = $txOrigin.val()
-    if (address === 'unknown' || !address) {
-      addTooltip('No account selected')
-    } else {
-      opts.udapp.importAccount((error)=> {
-        if (error) {
-          addTooltip(`Failed to import account. ` + error)
-        } else {
-          fillAccountsList(appAPI, opts, document.body)
-        }
-      })
-    }
+    opts.udapp.importAccount((error)=> {
+      if (error) {
+        addTooltip(`Failed to import account. ` + error)
+      } else {
+        fillAccountsList(appAPI, opts, document.body)
+      }
+    })
   }
 
   // @rv: open faucet website
