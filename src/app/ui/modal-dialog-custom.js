@@ -61,12 +61,8 @@ module.exports = {
       }
     )
   },
-  
-  // @rv: account import
-
-  // @rv: unlock account
   /**
-   * Unlock account
+   * @rv: Unlock account
    * @param {string} adderss address of account
    * @param {(error, password)=>void} cb callback function
    */
@@ -78,14 +74,42 @@ module.exports = {
       label: 'Unlock',
       fn: ()=> {
         const password = passwordEl.querySelector('#unlock-password-input').value
-        console.log('@unlockAccount unlock: ', password)
         return cb(null, password)
       }
     }, {
       label: 'Cancel',
       fn: ()=> {
-        console.log('@unlockAccount cancel')
         return cb('Unlock cancelled', null)
+      }
+    })
+  },
+  /**
+   * @rv: import account
+   * @param {(error, {privateKey:string, password:string, keystore:string})=>void} cb
+   */
+  importAccount: function(cb) {
+    const importPanel = yo`<div>
+    <div id="private-key-import">
+      <input id="private-key-input" type="text" name='prompt_text' class="${css['prompt_text']}" placeholder="paste your private key here" >
+      <br><br>
+      <input id="password-input" type="password" name='prompt_text' class="${css['prompt_text']}" placeholder="enter your new password to protect your account" >
+    </div>
+    <div id="json-import"></div>
+  </div>`
+    modal(`Import account`, importPanel, {
+      label: 'Import',
+      fn: ()=> {
+        const privateKey = importPanel.querySelector('#private-key-input').value
+        const password = importPanel.querySelector('#password-input').value
+        return cb(null, {
+          privateKey, 
+          password
+        })
+      }
+    }, {
+      label: 'Cancel',
+      fn: ()=> {
+        return cb('Import cancelled', null)
       }
     })
   }

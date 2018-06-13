@@ -65,20 +65,20 @@ UniversalDApp.prototype.reset = function (contracts, transactionContextAPI) {
 
 UniversalDApp.prototype.newAccount = function (password, cb) {
   if (executionContext.getProvider() === 'kevm-testnet') { // @rv: account creation for testnet
-    modalCustom.promptPassphraseCreation((error, passphrase) => {
+    modalCustom.promptPassphraseCreation((error, password) => {
       if (error) {
         modalCustom.alert(error)
       } else {
         // TODO: create account
         console.log('@UniversalDApp.prototype.newAccount')
-        console.log('* passphrase: ' + passphrase)
+        console.log('* passphrase: ' + password)
         const dk = keythereum.create()
-        const keystore = keythereum.dump(passphrase, dk.privateKey, dk.salt, dk.iv)
+        const keystore = keythereum.dump(password, dk.privateKey, dk.salt, dk.iv)
         console.log('* keystore: ', keystore)
         console.log('* private key: ', dk.privateKey)
 
         // save address and password to executionContext for temporary use
-        executionContext.saveAddressAndPassword(keystore.address, passphrase)
+        executionContext.saveAddressAndPassword(keystore.address, password)
         // save keystore to `rv-accounts`
         const accounts = this._api.config.get('rv-accounts') || []
         accounts.push(keystore)
@@ -417,17 +417,19 @@ UniversalDApp.prototype.runTx = function (args, cb) {
   ], cb)
 }
 
-// @rv: remove account
+/**
+ * @rv: remove account
+ * @param {string} address 
+ * @param {(error)=>void} cb 
+ */
 UniversalDApp.prototype.removeAccount = function(address, cb) {
   const accounts = this._api.config.get('rv-accounts') || []
-  console.log('@UniversalDApp.prototype.removeAccount', address, accounts)
   this._api.config.set('rv-accounts', accounts.filter((x)=> typeof(x) === 'object' && x.address !== address)) // remove address from accounts
   return cb(null)
 }
 
-// @rv: export private key
 /**
- * Export private key
+ * @rv: Export private key
  * @param {string} address 
  * @param {(error:string)=>void} cb 
  */
@@ -438,7 +440,6 @@ UniversalDApp.prototype.exportPrivateKey = function(address, cb) {
     if (!keystore) {
       return cb('Keystore not found', null)
     } else {
-      console.log('@UniversalDApp.prototype.exportPrivateKey: ', address, password, keystore)
       const crypto = keystore.crypto
       try {
         keythereum.recover(password, keystore, (privateKey)=> { // TODO: I think I should submit a pull request to `keythereum`. The design of this callback function is really bad.
@@ -462,18 +463,60 @@ UniversalDApp.prototype.exportPrivateKey = function(address, cb) {
     }
   }
 
-  const password = executionContext.getPasswordFromAdderss(address)
-  if (typeof(password) === 'undefined') { // needs to unlock account
-    modalCustom.unlockAccount(address, (error, password)=> {
+  // const password = executionContext.getPasswordFromAdderss(address)
+  // if (typeof(password) === 'undefined') { // needs to unlock account
+    modalCustom.unlockAccount(address, (error, password)=> { // force to enter password to unlock the account for export.
       if (error) {
         return cb(error)
       } else {
         return _export(password)
       }
     })
-  } else {
-    return _export(password)
+  // } else {
+  // return _export(password)
+  // }
+}
+
+/**
+ * @rv: Import account for cardano testnet
+ * @param {(error:string)=>void} cb 
+ */
+UniversalDApp.prototype.importAccount = function(cb) {
+  const _saveKeystore = (keystore, password)=> {
+    // save address and password to executionContext for temporary use
+    executionContext.saveAddressAndPassword(keystore.address, password)
+    // save keystore to `rv-accounts`
+    const accounts = this._api.config.get('rv-accounts') || []
+    let find = false
+    for (let i = 0; i < accounts.length; i++) {
+      if (accounts[i].address === keystore.address) {
+        accounts[i] = keystore
+        find = true
+        break
+      }
+    }
+    if (!find) {
+      accounts.push(keystore)
+    }
+    this._api.config.set('rv-accounts', accounts)
+    return cb(null)
   }
+
+  modalCustom.importAccount((error, {privateKey, password, keystore})=> {
+    console.log('@UniversalDApp.prototype.importAccount: ', error, privateKey, password)
+    if (privateKey) {
+      privateKey = privateKey.replace(/^0x/, '')
+      keythereum.create(undefined, (dk)=> {
+        keythereum.dump(password, privateKey, dk.salt, dk.iv, undefined, (keystore)=> {
+          _saveKeystore(keystore)
+        })
+      })
+    } else if (keystore) {
+
+    } else {
+      return cb('Internal Error')
+    }
+  })
 }
 
 module.exports = UniversalDApp

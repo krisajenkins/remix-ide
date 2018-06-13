@@ -499,7 +499,7 @@ function settings (container, appAPI, appEvents, opts) {
         <div class="${css.rvButton}" style="margin-bottom:0;"onclick=${removeAccount}>Remove account</div>
       </div>  
       <div class="${css.crow}">
-        <div class="${css.rvButton}" style="margin-left: 0;">Import account</div>
+        <div class="${css.rvButton}" style="margin-left: 0;" onclick=${importAccount}>Import account</div>
         <div class="${css.rvButton}" onclick=${openFaucet}>Open faucet</div>
       </div>
     </div>
@@ -554,12 +554,19 @@ function settings (container, appAPI, appEvents, opts) {
 
   // @rv: import account
   function importAccount() {
-
-  }
-
-  // @rv: export account 
-  function exportAccount() {
-    addTooltip('Export account')
+    const $txOrigin = $('#txorigin')
+    const address = $txOrigin.val()
+    if (address === 'unknown' || !address) {
+      addTooltip('No account selected')
+    } else {
+      opts.udapp.importAccount((error)=> {
+        if (error) {
+          addTooltip(`Failed to import account. ` + error)
+        } else {
+          fillAccountsList(appAPI, opts, document.body)
+        }
+      })
+    }
   }
 
   // @rv: open faucet website
