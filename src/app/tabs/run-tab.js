@@ -495,8 +495,8 @@ function settings (container, appAPI, appEvents, opts) {
   var accountElExtra = yo`
     <div id="account-extra-section">
       <div class="${css.crow}">
-        <div class="${css.rvButton}" style="margin-left: 0;" onclick=${exportPrivateKey}>Export private key</div>
-        <div class="${css.rvButton}" onclick=${removeAccount}>Remove account</div>
+        <div class="${css.rvButton}" style="margin-bottom:0;margin-left:0;" onclick=${exportPrivateKey}>Export private key</div>
+        <div class="${css.rvButton}" style="margin-bottom:0;"onclick=${removeAccount}>Remove account</div>
       </div>  
       <div class="${css.crow}">
         <div class="${css.rvButton}" style="margin-left: 0;">Import account</div>
@@ -576,7 +576,6 @@ function settings (container, appAPI, appEvents, opts) {
   function removeAccount() {
     const $txOrigin = $('#txorigin')
     const address = $txOrigin.val()
-    console.log('@removeAccount: ', address)
     if (address === 'unknown' || !address) {
       addTooltip('No account selected')
     } else {
@@ -592,6 +591,19 @@ function settings (container, appAPI, appEvents, opts) {
 
   // @rv: export private key
   function exportPrivateKey() {
+    const $txOrigin = $('#txorigin')
+    const address = $txOrigin.val()
+    if (address === 'unknown' || !address) {
+      addTooltip('No account selected')
+    } else {
+      opts.udapp.exportPrivateKey(address, (error)=> {
+        if (error) {
+          addTooltip('Failed to export private key for account: ' + address + '\n' + error)
+        } else {
+          fillAccountsList(appAPI, opts, document.body)
+        }
+      })
+    }
   }
 
   return el

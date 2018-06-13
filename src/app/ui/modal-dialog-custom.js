@@ -64,7 +64,31 @@ module.exports = {
   
   // @rv: account import
 
-  // @rv: account export
+  // @rv: unlock account
+  /**
+   * Unlock account
+   * @param {string} adderss address of account
+   * @param {(error, password)=>void} cb callback function
+   */
+  unlockAccount: function(address, cb) {
+    const passwordEl = yo`<div>
+      <input id="unlock-password-input" type="password" name='prompt_text' class="${css['prompt_text']}" placeholder="please enter your password to unlock your account" >
+    </div>`
+    modal(`Unlock account: ${address}`, passwordEl, {
+      label: 'Unlock',
+      fn: ()=> {
+        const password = passwordEl.querySelector('#unlock-password-input').value
+        console.log('@unlockAccount unlock: ', password)
+        return cb(null, password)
+      }
+    }, {
+      label: 'Cancel',
+      fn: ()=> {
+        console.log('@unlockAccount cancel')
+        return cb('Unlock cancelled', null)
+      }
+    })
+  }
 }
 
 function prompt (title, text, hidden, inputValue, ok, cancel, focus) {

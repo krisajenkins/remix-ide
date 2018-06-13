@@ -134,7 +134,7 @@ UniversalDApp.prototype.getAccounts = function (cb) {
       executionContext.web3().personal.getListAccounts(cb)
     } else if (executionContext.getProvider() === 'kevm-testnet') { // @rv: kevm testnet, load accounts from `rv-accounts`
       const keystores = this._api.config.get('rv-accounts') || []
-      const accounts = keystores.map((x)=> x.address).filter(x=>x)
+      const accounts = keystores.map((x)=> '0x' + x.address).filter(x=>x)
       cb(null, accounts)
     } else {
       executionContext.web3().eth.getAccounts(cb)
@@ -417,12 +417,63 @@ UniversalDApp.prototype.runTx = function (args, cb) {
   ], cb)
 }
 
-// @rv remove account
+// @rv: remove account
 UniversalDApp.prototype.removeAccount = function(address, cb) {
   const accounts = this._api.config.get('rv-accounts') || []
   console.log('@UniversalDApp.prototype.removeAccount', address, accounts)
   this._api.config.set('rv-accounts', accounts.filter((x)=> typeof(x) === 'object' && x.address !== address)) // remove address from accounts
   return cb(null)
+}
+
+// @rv: export private key
+/**
+ * Export private key
+ * @param {string} address 
+ * @param {(error:string)=>void} cb 
+ */
+UniversalDApp.prototype.exportPrivateKey = function(address, cb) {
+  const _export = (password)=> {
+    const accounts = this._api.config.get('rv-accounts')
+    const keystore = accounts.filter((x)=> x.address === address.replace(/^0x/, ''))[0]
+    if (!keystore) {
+      return cb('Keystore not found', null)
+    } else {
+      console.log('@UniversalDApp.prototype.exportPrivateKey: ', address, password, keystore)
+      const crypto = keystore.crypto
+      try {
+        keythereum.recover(password, keystore, (privateKey)=> { // TODO: I think I should submit a pull request to `keythereum`. The design of this callback function is really bad.
+          if (privateKey.toString('hex').length !== 64) { // Invalid privateKey
+            const error = privateKey
+            return cb(error)
+          }
+          privateKey = privateKey.toString('hex')  // recover private key
+          const element = document.createElement('a');
+          element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(privateKey));
+          element.setAttribute('download', `privateKey_${address}_${(new Date())}`);      
+          element.style.display = 'none';
+          document.body.appendChild(element);
+          element.click();
+          document.body.removeChild(element);
+          return cb(false)
+        })
+      } catch(error) { // Failed to recover private key from the combination of keystore and password
+        return cb(error, null)
+      }
+    }
+  }
+
+  const password = executionContext.getPasswordFromAdderss(address)
+  if (typeof(password) === 'undefined') { // needs to unlock account
+    modalCustom.unlockAccount(address, (error, password)=> {
+      if (error) {
+        return cb(error)
+      } else {
+        return _export(password)
+      }
+    })
+  } else {
+    return _export(password)
+  }
 }
 
 module.exports = UniversalDApp
