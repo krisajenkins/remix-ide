@@ -94,6 +94,15 @@ function ExecutionContext () {
     }
   }
 
+  // @rv: save password for address temporarily
+  this.addressPasswordMap = {}
+  this.saveAddressAndPassword = function(address, password) {
+    this.addressPasswordMap[address] = password
+  }
+  this.getPasswordFromAdderss = function(address) {
+    return this.addressPasswordMap[address]
+  }
+
   this.getProvider = function () {
     return executionContext
   }
@@ -178,7 +187,7 @@ function ExecutionContext () {
       }
     } else if (context === 'web3') {
       confirmCb(cb)
-    } else if (context === 'kevm-testnet') {
+    } else if (context === 'kevm-testnet') { // @rv: connect to kevm-testnet
       executionContext = context
       web3.setProvider(new web3.providers.HttpProvider('https://kevm-testnet.iohkdev.io:8546'))
       self.event.trigger('contextChanged', ['kevm-testnet'])
@@ -250,7 +259,7 @@ var transactionDetailsLinks = {
   'Rinkeby': 'https://rinkeby.etherscan.io/tx/',
   'Ropsten': 'https://ropsten.etherscan.io/tx/',
   'Kovan': 'https://kovan.etherscan.io/tx/',
-  'Goguen': 'https://kevm-testnet.iohkdev.io/transaction/'
+  'Goguen': 'https://kevm-testnet.iohkdev.io/transaction/' // @rv: add url for testnet
 }
 
 module.exports = new ExecutionContext()

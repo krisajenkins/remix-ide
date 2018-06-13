@@ -213,7 +213,13 @@ var css = csjs`
     justify-content: space-evenly;
     ${styles.rightPanel.runTab.box_Info_RunTab};
     width: 145px;
-}
+  }
+
+  .rvButton {
+    ${styles.rightPanel.runTab.button_atAddress}
+    width: 110px;
+    margin: 4px;
+  }
 `
 
 module.exports = css

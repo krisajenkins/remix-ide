@@ -63,6 +63,7 @@ TxRunner.prototype._sendTransaction = function (sendTx, tx, pass, callback) {
       const privateKey = Buffer.from('464ea8983cec61de372c0114132cdfe6147efdffe8ae91df807df53c9336a72a', 'hex')
       const nonce = executionContext.web3().eth.getTransactionCount(tx.from, "latest")
       console.log('* nonce: ', nonce)
+      console.log('* gas: ', tx.gas)
       const newTx = {
         nonce: new BN(nonce),
         gasPrice: new BN(5000000000), // 5 gwei
@@ -70,6 +71,7 @@ TxRunner.prototype._sendTransaction = function (sendTx, tx, pass, callback) {
         to: tx.to,
         value: new BN(parseInt(tx.value) || 0, 10),
         data: new Buffer(tx.data.slice(2), 'hex'),
+        chainId: 0
         // chainId: 0x3d  // <= this will give me error.
       }
       const ethTx = new EthJSTX(newTx)

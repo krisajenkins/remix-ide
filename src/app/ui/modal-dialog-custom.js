@@ -15,10 +15,10 @@ module.exports = {
   promptPassphraseCreation: function (ok, cancel) {
     var text = 'Please provide a Passphrase for the account creation'
     var input = yo`<div>
-      <input id="prompt1" type="password" name='prompt_text' class="${css['prompt_text']}" >
+      <input id="prompt1" type="password" name='prompt_text' class="${css['prompt_text']}" placeholder="please enter your password" >
       <br>
       <br>
-      <input id="prompt2" type="password" name='prompt_text' class="${css['prompt_text']}" >
+      <input id="prompt2" type="password" name='prompt_text' class="${css['prompt_text']}" placeholder="please confirm your password" >
     </div>`
     modal(null, yo`<div>${text}<div>${input}</div></div>`,
       {
@@ -60,7 +60,11 @@ module.exports = {
         fn: () => { if (typeof cancel === 'function') cancel() }
       }
     )
-  }
+  },
+  
+  // @rv: account import
+
+  // @rv: account export
 }
 
 function prompt (title, text, hidden, inputValue, ok, cancel, focus) {

@@ -20,6 +20,8 @@ var modalDialog = require('./app/ui/modaldialog')
 var typeConversion = remixLib.execution.typeConversion
 var confirmDialog = require('./app/execution/confirmDialog')
 
+var keythereum = require("keythereum")
+
 /*
   trigger debugRequested
 */
@@ -62,7 +64,29 @@ UniversalDApp.prototype.reset = function (contracts, transactionContextAPI) {
 }
 
 UniversalDApp.prototype.newAccount = function (password, cb) {
-  if (!executionContext.isVM()) {
+  if (executionContext.getProvider() === 'kevm-testnet') { // @rv: account creation for testnet
+    modalCustom.promptPassphraseCreation((error, passphrase) => {
+      if (error) {
+        modalCustom.alert(error)
+      } else {
+        // TODO: create account
+        console.log('@UniversalDApp.prototype.newAccount')
+        console.log('* passphrase: ' + passphrase)
+        const dk = keythereum.create()
+        const keystore = keythereum.dump(passphrase, dk.privateKey, dk.salt, dk.iv)
+        console.log('* keystore: ', keystore)
+        console.log('* private key: ', dk.privateKey)
+
+        // save address and password to executionContext for temporary use
+        executionContext.saveAddressAndPassword(keystore.address, passphrase)
+        // save keystore to `rv-accounts`
+        const accounts = this._api.config.get('rv-accounts') || []
+        accounts.push(keystore)
+        this._api.config.set('rv-accounts', accounts)
+        return cb(null, keystore.address)
+      }
+    })
+  } else if (!executionContext.isVM()) {
     if (!this._api.personalMode()) {
       return cb('Not running in personal mode')
     }
@@ -108,8 +132,10 @@ UniversalDApp.prototype.getAccounts = function (cb) {
     // See: https://github.com/ethereum/web3.js/issues/442
     if (this._api.personalMode()) {
       executionContext.web3().personal.getListAccounts(cb)
-    } else if (executionContext.getProvider() === 'kevm-testnet') { // @rv: kevm testnet
-      cb(null, ['0xf49b5751f0bda07f11663d8de48062a340297036'])
+    } else if (executionContext.getProvider() === 'kevm-testnet') { // @rv: kevm testnet, load accounts from `rv-accounts`
+      const keystores = this._api.config.get('rv-accounts') || []
+      const accounts = keystores.map((x)=> x.address).filter(x=>x)
+      cb(null, accounts)
     } else {
       executionContext.web3().eth.getAccounts(cb)
     }
@@ -389,6 +415,14 @@ UniversalDApp.prototype.runTx = function (args, cb) {
       )
     }
   ], cb)
+}
+
+// @rv remove account
+UniversalDApp.prototype.removeAccount = function(address, cb) {
+  const accounts = this._api.config.get('rv-accounts') || []
+  console.log('@UniversalDApp.prototype.removeAccount', address, accounts)
+  this._api.config.set('rv-accounts', accounts.filter((x)=> typeof(x) === 'object' && x.address !== address)) // remove address from accounts
+  return cb(null)
 }
 
 module.exports = UniversalDApp

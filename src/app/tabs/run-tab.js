@@ -138,6 +138,7 @@ function runTab (appAPI = {}, appEvents = {}, opts = {}) {
 
   selectExEnv.value = executionContext.getProvider()
   executionContext.event.register('contextChanged', (context, silent) => {
+    toggleRVElements()
     setFinalContext()
   })
 
@@ -285,6 +286,7 @@ function contractDropdown (events, appAPI, appEvents, opts, self) {
   var compFails = yo`<i title="Contract compilation failed. Please check the compile tab for more information." class="fa fa-times-circle ${css.errorIcon}" ></i>`
   appEvents.compiler.register('compilationFinished', function (success, data, source) {
     // TODO: @rv support .iele
+    toggleRVElements()
     if (!source.target.endsWith('.sol')) {return;}
     getContractNames(success, data)
     if (success) {
@@ -485,10 +487,24 @@ function settings (container, appAPI, appEvents, opts) {
     <div class="${css.crow}">
       <div class="${css.col1_1}">Account</div>
       <select name="txorigin" class="${css.select}" id="txorigin"></select>
-        ${copyToClipboard(() => document.querySelector('#runTabView #txorigin').value)}
-        <i class="fa fa-plus-circle ${css.icon}" aria-hidden="true" onclick=${newAccount} title="Create a new account"></i>
+      ${copyToClipboard(() => document.querySelector('#runTabView #txorigin').value)}
+      <i class="fa fa-plus-circle ${css.icon}" aria-hidden="true" onclick=${newAccount} title="Create a new account"></i>
     </div>
   `
+
+  var accountElExtra = yo`
+    <div id="account-extra-section">
+      <div class="${css.crow}">
+        <div class="${css.rvButton}" style="margin-left: 0;" onclick=${exportPrivateKey}>Export private key</div>
+        <div class="${css.rvButton}" onclick=${removeAccount}>Remove account</div>
+      </div>  
+      <div class="${css.crow}">
+        <div class="${css.rvButton}" style="margin-left: 0;">Import account</div>
+        <div class="${css.rvButton}" onclick=${openFaucet}>Open faucet</div>
+      </div>
+    </div>
+  `
+
   var gasPriceEl = yo`
     <div class="${css.crow}">
       <div class="${css.col1_1}">Gas limit</div>
@@ -512,6 +528,7 @@ function settings (container, appAPI, appEvents, opts) {
     <div class="${css.settings}">
       ${environmentEl}
       ${accountEl}
+      ${accountElExtra}
       ${gasPriceEl}
       ${valueEl}
     </div>
@@ -535,7 +552,59 @@ function settings (container, appAPI, appEvents, opts) {
     })
   }
 
+  // @rv: import account
+  function importAccount() {
+
+  }
+
+  // @rv: export account 
+  function exportAccount() {
+    addTooltip('Export account')
+  }
+
+  // @rv: open faucet website
+  function openFaucet() {
+    const context = executionContext.getProvider()
+    if (context === 'kevm-testnet') {
+      window.open('http://testnet.iohkdev.io/goguen/faucet/#faucet-register', '_blank')
+    } else {
+      addTooltip('Invalid context: ' + context)
+    }
+  }
+
+  // @rv: remove account
+  function removeAccount() {
+    const $txOrigin = $('#txorigin')
+    const address = $txOrigin.val()
+    console.log('@removeAccount: ', address)
+    if (address === 'unknown' || !address) {
+      addTooltip('No account selected')
+    } else {
+      opts.udapp.removeAccount(address, (error)=> {
+        if (error) {
+          addTooltip('Failed to remove account: ' + address)
+        } else {
+          fillAccountsList(appAPI, opts, document.body)
+        }
+      }) 
+    }
+  }
+
+  // @rv: export private key
+  function exportPrivateKey() {
+  }
+
   return el
+}
+
+// @rv
+function toggleRVElements() {
+  const context = executionContext.getProvider()
+  if (context === 'kevm-testnet') {
+    $('#account-extra-section').show()
+  } else {
+    $('#account-extra-section').hide()
+  }
 }
 
 module.exports = runTab
