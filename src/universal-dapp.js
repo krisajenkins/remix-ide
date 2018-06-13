@@ -69,13 +69,8 @@ UniversalDApp.prototype.newAccount = function (password, cb) {
       if (error) {
         modalCustom.alert(error)
       } else {
-        // TODO: create account
-        console.log('@UniversalDApp.prototype.newAccount')
-        console.log('* passphrase: ' + password)
         const dk = keythereum.create()
         const keystore = keythereum.dump(password, dk.privateKey, dk.salt, dk.iv)
-        console.log('* keystore: ', keystore)
-        console.log('* private key: ', dk.privateKey)
 
         // save address and password to executionContext for temporary use
         executionContext.saveAddressAndPassword(keystore.address, password)
@@ -83,7 +78,7 @@ UniversalDApp.prototype.newAccount = function (password, cb) {
         const accounts = this._api.config.get('rv-accounts') || []
         accounts.push(keystore)
         this._api.config.set('rv-accounts', accounts)
-        return cb(null, keystore.address)
+        return cb(null, '0x' + keystore.address)
       }
     })
   } else if (!executionContext.isVM()) {
@@ -315,8 +310,46 @@ UniversalDApp.prototype.runTx = function (args, cb) {
         next(null, address, value, gasLimit)
       })
     },
-    function runTransaction (fromAddress, value, gasLimit, next) {
-      var tx = { to: args.to, data: args.data.dataHex, useCall: args.useCall, from: fromAddress, value: value, gasLimit: gasLimit }
+    // @rv: unlock account if necessary
+    function unlockAccount (address, value, gasLimit, next) {
+      function _getPrivateKey(keystore, password) {
+        keythereum.recover(password, keystore, (privateKey)=> {
+          if (privateKey.toString('hex').length !== 64) { // Invalid privateKey
+            const error = privateKey
+            return next(error)
+          } else {
+            privateKey = privateKey.toString('hex')
+            executionContext.saveAddressAndPassword(address, password) // So user doesn't have to unlock again.
+            return next(null, address, value, gasLimit, privateKey)
+          }
+        })
+      }
+
+      if (!args.useCall &&   // not a call function
+          (executionContext.getProvider() === 'kevm-testnet')) {
+        const accounts = self._api.config.get('rv-accounts')
+        const keystore = accounts.filter((x)=> x.address === address.replace(/^0x/, ''))[0]
+        if (!keystore) {
+          return next('Account ' + address + ' not found')
+        }
+        const password = executionContext.getPasswordFromAddress(address)
+        if (typeof(password) === 'undefined') {
+          modalCustom.unlockAccount(address, (error, password)=> {
+            if (error) {
+              return next(error)
+            } else {
+              return _getPrivateKey(keystore, password)
+            }
+          })
+        } else {
+          return _getPrivateKey(keystore, password)
+        }
+      } else {
+        next(null, address, value, gasLimit, undefined)
+      }
+    },
+    function runTransaction (fromAddress, value, gasLimit, privateKey, next) {
+      var tx = { to: args.to, data: args.data.dataHex, useCall: args.useCall, from: fromAddress, value: value, gasLimit: gasLimit, privateKey: privateKey }
       var payLoad = { funAbi: args.data.funAbi, funArgs: args.data.funArgs, contractBytecode: args.data.contractBytecode, contractName: args.data.contractName }
       var timestamp = Date.now()
 
@@ -324,7 +357,7 @@ UniversalDApp.prototype.runTx = function (args, cb) {
       self.txRunner.rawRun(tx,
 
         (network, tx, gasEstimation, continueTxExecution, cancelCb) => {
-          if (network.name !== 'Main') {
+          if (network.name !== 'Main' && network.name !== 'Goguen') { // @rv: Let user specify gasPrice
             return continueTxExecution(null)
           }
           var amount = executionContext.web3().fromWei(typeConversion.toInt(tx.value), 'ether')
@@ -463,7 +496,7 @@ UniversalDApp.prototype.exportPrivateKey = function(address, cb) {
     }
   }
 
-  // const password = executionContext.getPasswordFromAdderss(address)
+  // const password = executionContext.getPasswordFromAddress(address)
   // if (typeof(password) === 'undefined') { // needs to unlock account
     modalCustom.unlockAccount(address, (error, password)=> { // force to enter password to unlock the account for export.
       if (error) {

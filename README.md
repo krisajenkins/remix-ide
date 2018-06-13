@@ -2,7 +2,6 @@
 [![BrowserStack Status](https://www.browserstack.com/automate/badge.svg?badge_key=MTc5WVBoNnhOTGhaUng3ZFI3MDZvNWkraHIrd1FNanZIZk80SG9uMkFIND0tLUoyUjd1YVhWRnRrcUJMMnFlbmN3Y0E9PQ==--4085377897aef217e507c8fc46d463eb699838b8)](https://www.browserstack.com/automate/public-build/MTc5WVBoNnhOTGhaUng3ZFI3MDZvNWkraHIrd1FNanZIZk80SG9uMkFIND0tLUoyUjd1YVhWRnRrcUJMMnFlbmN3Y0E9PQ==--4085377897aef217e507c8fc46d463eb699838b8)
 
 
-
 # Remix
 
 Remix is a browser-based compiler and IDE that enables users to build **Ethereum contracts with Solidity language** and to debug transactions.
@@ -13,21 +12,17 @@ Remix consists of many modules and in this repository you will find the Remix ID
 
 ![Remix screenshot](https://i.imgur.com/clfc7US.png)
 
-## Offline Usage
+## INSTALLATION (by RV):
 
-The `gh-pages` branch has always the latest stable build of Remix. It also contains a ZIP file with the entire build. Download it to use offline.
-
-Note: it contains the latest release of Solidity available at the time of the packaging. No other compiler versions are supported.
-
-
-## INSTALLATION:
+> Difference: We include `remix` repository directly in this repository.
 
 Install **npm** and **node.js** (see https://docs.npmjs.com/getting-started/installing-node), then do:
 
 ```bash
 git clone https://github.com/ethereum/remix-ide.git
 cd remix-ide
-npm run prepare
+npm install
+npm run linkremixcore && npm run linkremixlib && npm run linkremixsolidity
 npm start
 ```
 
@@ -39,6 +34,11 @@ Then open your `text editor` and start developing.
 The browser will automatically refresh when files are saved.
 
 Most of the the time working with other modules (like debugger etc.) hosted in the [Remix repository](https://github.com/ethereum/remix) is not needed.
+
+## DEPLOYMENT (by RV):
+
+Run `npm run build` which will build `./build/app.js` file.   
+Then serve the `index.html`, `./build/app.js`, and `./assets/*`.
 
 ### Troubleshooting building
 

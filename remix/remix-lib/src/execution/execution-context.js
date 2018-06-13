@@ -97,9 +97,11 @@ function ExecutionContext () {
   // @rv: save password for address temporarily
   this.addressPasswordMap = {}
   this.saveAddressAndPassword = function(address, password) {
+    address = address.replace(/^0x/, '')
     this.addressPasswordMap[address] = password
   }
-  this.getPasswordFromAdderss = function(address) {
+  this.getPasswordFromAddress = function(address) {
+    address = address.replace(/^0x/, '')
     return this.addressPasswordMap[address]
   }
 

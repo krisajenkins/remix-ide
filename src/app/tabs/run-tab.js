@@ -491,7 +491,7 @@ function settings (container, appAPI, appEvents, opts) {
       <i class="fa fa-plus-circle ${css.icon}" aria-hidden="true" onclick=${newAccount} title="Create a new account"></i>
     </div>
   `
-
+  
   var accountElExtra = yo`
     <div id="account-extra-section">
       <div class="${css.crow}">
@@ -499,8 +499,9 @@ function settings (container, appAPI, appEvents, opts) {
         <div class="${css.rvButton}" style="margin-bottom:0;"onclick=${removeAccount}>Remove account</div>
       </div>  
       <div class="${css.crow}">
-        <div class="${css.rvButton}" style="margin-left: 0;" onclick=${importAccount}>Import account</div>
-        <div class="${css.rvButton}" onclick=${openFaucet}>Open faucet</div>
+        <div class="${css.rvButton}" style="margin-left:0;background-color:hsla(45, 100%, 75%, 0.5);" onclick=${importAccount}>Import account</div>
+        <div class="${css.rvButton}" style="background-color:hsla(45, 100%, 75%, 0.5);" onclick=${newAccount}>Create account</div>
+        <div class="${css.rvButton}" style="background-color:hsla(45, 100%, 75%, 0.5);" onclick=${openFaucet}>Open faucet</div>
       </div>
     </div>
   `
