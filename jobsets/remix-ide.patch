@@ -1,0 +1,13 @@
+diff --git a/package.json b/package.json
+index 7b8cfa38..6f0bcc80 100644
+--- a/package.json
++++ b/package.json
+@@ -172,7 +172,7 @@
+     "serve_debugger": "execr --silent http-server src/app/debugger/remix-debugger",
+     "sourcemap": "exorcist --root ../ build/app.js.map > build/app.js",
+     "start": "npm-run-all -lpr serve watch onchange remixd",
+-    "test": "npm run csslint; standard && node test/index.js",
++    "test": "npm run csslint; node test/index.js",
+     "test-browser": "npm-run-all -lpr selenium downloadsolc_root make-mock-compiler serve browsertest",
+     "watch": "watchify src/index.js -dv -p browserify-reload -o build/app.js"
+   }
