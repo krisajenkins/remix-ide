@@ -240,7 +240,6 @@ function filepanel (appAPI, filesProvider) {
         if (!filesProvider['browser'].set(newName, '')) {
           modalDialogCustom.alert('Failed to create file ' + newName)
         } else {
-          debugger
           var file = filesProvider['browser'].type + '/' + newName
           appAPI.switchFile(file)
           if (file.includes('_test.sol')) {
