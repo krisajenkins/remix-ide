@@ -10,15 +10,16 @@ class MultiParamManager {
 
   /**
     *
-    * @param {bool} lookupOnly
-    * @param {Object} funABI
-    * @param {Function} clickMultiCallBack
+    * @param {boolean} lookupOnly
+    * @param {object} funABI
+    * @param {function} clickMultiCallBack
     * @param {string} inputs
     * @param {string} title
     * @param {string} evmBC
+    * @param {boolean} isIele @rv, whether it is using IELE vm or not
     *
     */
-  constructor (lookupOnly, funABI, clickCallBack, inputs, title, evmBC) {
+  constructor (lookupOnly, funABI, clickCallBack, inputs, title, evmBC, isIele) {
     this.lookupOnly = lookupOnly
     this.funABI = funABI
     this.clickCallBack = clickCallBack
@@ -27,6 +28,7 @@ class MultiParamManager {
     this.evmBC = evmBC
     this.basicInputField
     this.multiFields
+    this.isIele = isIele
   }
 
   switchMethodViewOn () {
@@ -97,16 +99,28 @@ class MultiParamManager {
   }
 
   createMultiFields () {
-    if (this.funABI.inputs) {
-      return yo`<div>
+    // @rv: support IELE inputs (parameters)
+    if (this.isIele) {
+      if (this.funABI.inputs) {
+        return yo`<div>
         ${this.funABI.inputs.map(function (inp) {
-          return yo`<div class="${css.multiArg}"><label for="${inp.name}"> ${inp.name}: </label><input placeholder="${inp.type}" id="${inp.name}" title="${inp.name}"></div>`
+          return yo`<div class="${css.multiArg}"><label for="${inp.name}"> ${inp.name}: </label><input placeholder="arbitrary-width signed integer" id="${inp.name}" title="${inp.name}"></div>`
         })}
       </div>`
+      }
+    } else {
+      if (this.funABI.inputs) {
+        return yo`<div>
+          ${this.funABI.inputs.map(function (inp) {
+            return yo`<div class="${css.multiArg}"><label for="${inp.name}"> ${inp.name}: </label><input placeholder="${inp.type}" id="${inp.name}" title="${inp.name}"></div>`
+          })}
+        </div>`
+      }
     }
   }
 
   render () {
+    console.log('@multiParamManager.js render')
     var title
     if (this.title) {
       title = this.title

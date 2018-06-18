@@ -166,7 +166,7 @@ function Compiler (handleImportCall) {
           contracts: {
             [target]: {
               [contractName]: {
-                abi: [],
+                abi: retrieveIELEAbi(sources[target].content, contractName),
                 devdoc: {
                   methods: {}
                 },
@@ -199,6 +199,64 @@ function Compiler (handleImportCall) {
       console.log('@compilationFinished 3')
       compilationFinished({ error: error.toString(), }, undefined, {sources, target})
     })
+  }
+
+  /**
+   * @rv: get ABI from IELE code.
+   * @param {string} ieleCode
+   * @param {string} contractName
+   * @return {object[]}
+   */
+  function retrieveIELEAbi(ieleCode, contractName) {
+    // TODO: check if contractName is empty
+    if (!contractName || !ieleCode) {
+      return []
+    }
+    let match = ieleCode.match(new RegExp("contract\\s+Factorial\\s+{"))
+    if (!match) {
+      return []
+    }
+    const index = match.index
+    ieleCode = ieleCode.slice(index, ieleCode.length)
+
+    // remove comments
+    ieleCode = ieleCode.replace(/\/\/.+?$/mg, '') // line comment
+    ieleCode = ieleCode.replace(/[^\\]\/\*([\w\W]+?)\*\//g, '') // block comment
+
+    let paren = 0
+    let i = 0
+    for (i = 0; i < ieleCode.length; i++) {
+      if (ieleCode[i] === '{') {
+        paren++
+      } else if (ieleCode[i] === '}') {
+        paren--
+        if (paren === 0) {
+          break
+        }
+      }
+    }
+    if (paren !== 0) { // curly brackets don't match
+      return []
+    }
+    ieleCode = ieleCode.slice(0, i + 1)
+
+    // analyze functions
+    const regex = /\sdefine\s+(?:public\s+)*\@([\w\W]+?)\(([^)]*?)\)\s*\{/g
+    const abiArray = []
+    match = null
+    while ((match = regex.exec(ieleCode)) !== null) {
+      const functionName = match[1]
+      const parameters = match[2].split(',').map((x)=> x.trim()).filter(x=>x)
+      abiArray.push({
+        name: functionName,
+        inputs: parameters.map((parameter)=> {
+          return {
+            name: parameter
+          }
+        })
+      })
+    }
+    return abiArray
   }
 
   function onInternalCompilerLoaded () {

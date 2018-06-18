@@ -298,7 +298,7 @@ function contractDropdown (events, appAPI, appEvents, opts, self) {
   instanceContainer.appendChild(self._view.noInstancesText)
   var compFails = yo`<i title="Contract compilation failed. Please check the compile tab for more information." class="fa fa-times-circle ${css.errorIcon}" ></i>`
   appEvents.compiler.register('compilationFinished', function (success, data, source) {
-    // TODO: @rv support .iele
+    // @rv: toggle elements
     toggleRVElements()
     getContractNames(success, data)
     if (success) {
@@ -343,7 +343,6 @@ function contractDropdown (events, appAPI, appEvents, opts, self) {
   `
 
   function setInputParamsPlaceHolder () {
-    console.log('@run-tab.js setInputParamsPlaceHolder => ', getSelectedContract().contract)
     createPanel.innerHTML = ''
     if (opts.compiler.getContract && selectContractNames.selectedIndex >= 0 && selectContractNames.children.length > 0) {
       // @rv: support iele bytecode 
@@ -357,11 +356,12 @@ function contractDropdown (events, appAPI, appEvents, opts, self) {
         createPanel.appendChild(createConstructorInstance.render())
         return
       } else { // iele vm
-        const ctrabi = txHelper.getConstructorInterface(contract.object.abi) // TODO: <= support getIELEConstructorInterface
+        const ctrabi = txHelper.getConstructorInterfaceForIELE(contract.object.abi) // TODO: <= support getIELEConstructorInterface
         const ctrIELEVMbc = contract.object.ielevm.bytecode.object
         const createConstructorInstance = new MultiParamManager(0, ctrabi, (valArray, inputValues)=> {
           createInstance(inputsValues) // TODO: <= support createIELEInstance
-        }, txHelper.inputParametersDeclarationToString(ctrabi.inputs), 'Deploy (IELE)', ctrIELEVMbc)
+        }, txHelper.inputParametersDeclarationToString(ctrabi.inputs), 'Deploy (IELE)', ctrIELEVMbc, true)
+        createPanel.appendChild(createConstructorInstance.render())
       }
     } else {
       createPanel.innerHTML = 'No compiled contracts'

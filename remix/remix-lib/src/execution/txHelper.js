@@ -76,6 +76,18 @@ module.exports = {
     return funABI
   },
 
+  getConstructorInterfaceForIELE: function(abi) {
+    const constructorAbi = abi.filter((x)=> x.name === 'init')[0]
+    if (!constructorAbi) {
+      return {
+        name: 'init',
+        inputs: []
+      }
+    } else {
+      return constructorAbi
+    }
+  },
+
   getFunction: function (abi, fnName) {
     for (var i = 0; i < abi.length; i++) {
       if (abi[i].name === fnName) {
@@ -122,7 +134,8 @@ module.exports = {
   },
 
   inputParametersDeclarationToString: function (abiinputs) {
-    var inputs = (abiinputs || []).map((inp) => inp.type + ' ' + inp.name)
+    // @rv: set inp.type default value to ''
+    var inputs = (abiinputs || []).map((inp) => (inp.type || '') + ' ' + inp.name)
     return inputs.join(', ')
   }
 
