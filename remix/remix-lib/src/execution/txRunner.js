@@ -28,7 +28,10 @@ TxRunner.prototype.rawRun = function (args, confirmationCb, gasEstimationForceSe
 }
 
 TxRunner.prototype._executeTx = function (tx, gasPrice, chainId, privateKey, api, promptCb, callback) {
-  // console.log('@TxRunner.prototype._executeTx', tx, gasPrice)
+  console.log('@txRunner.js TxRunner.prototype._executeTx')
+  console.log('* tx: ',tx)
+  console.log('* gasPrice: ', gasPrice)
+  console.log('* chainId: ', chainId)
   // console.log('                              personalMode: ', api.personalMode())
   if (gasPrice) tx.gasPrice = executionContext.web3().toHex(gasPrice)
   if (api.personalMode()) {
@@ -62,11 +65,12 @@ TxRunner.prototype._sendTransaction = function (sendTx, tx, pass, chainId, priva
     if (executionContext.isCustomRPC()) {
       privateKey = Buffer.from(privateKey, 'hex') // convert to Buffer
       const nonce = executionContext.web3().eth.getTransactionCount(tx.from, "latest")
-      // console.log('* nonce: ', nonce)
-      // console.log('* gas: ', tx.gas)
-      // console.log('* gasPrice: ', parseInt(tx.gasPrice))
-      // console.log('* value: ', tx.value)
-      // console.log('* chainId: ', chainId)
+      console.log('@txRunner.js TxRunner.prototype._sendTransaction')
+      console.log('* nonce: ', nonce)
+      console.log('* gas: ', tx.gas)
+      console.log('* gasPrice: ', parseInt(tx.gasPrice))
+      console.log('* value: ', tx.value)
+      console.log('* chainId: ', chainId)
       const newTx = {
         nonce: new BN(nonce),
         gasPrice: new BN(parseInt(tx.gasPrice) || 5000000000), // default: 5 gwei

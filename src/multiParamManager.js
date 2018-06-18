@@ -12,7 +12,7 @@ class MultiParamManager {
     *
     * @param {boolean} lookupOnly
     * @param {object} funABI
-    * @param {function} clickMultiCallBack
+    * @param {function} clickCallBack
     * @param {string} inputs
     * @param {string} title
     * @param {string} evmBC
@@ -172,9 +172,9 @@ class MultiParamManager {
               var multiJSON = JSON.parse('[' + multiString + ']')
               var encodeObj
               if (this.evmBC) {
-                encodeObj = txFormat.encodeData(this.funABI, multiJSON, this.evmBC)
+                encodeObj = txFormat.encodeData(this.funABI, multiJSON, this.evmBC, this.isIele)
               } else {
-                encodeObj = txFormat.encodeData(this.funABI, multiJSON)
+                encodeObj = txFormat.encodeData(this.funABI, multiJSON, '', this.isIele)
               }
               if (encodeObj.error) {
                 throw new Error(encodeObj.error)

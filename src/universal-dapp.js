@@ -185,6 +185,7 @@ UniversalDApp.prototype.call = function (isUserAction, args, value, lookupOnly, 
       logMsg = `call to ${args.contractName}.${(args.funABI.name) ? args.funABI.name : '(fallback)'}`
     }
   }
+  // TODO: @rv: support IELE
   txFormat.buildData(args.contractName, args.contractAbi, self.contracts, false, args.funABI, value, (error, data) => {
     if (!error) {
       if (isUserAction) {
@@ -276,8 +277,9 @@ UniversalDApp.prototype.runTx = function (args, cb) {
     function getGasLimit (next) {
       if (self.transactionContextAPI.getGasLimit) {
         return self.transactionContextAPI.getGasLimit(next)
+      } else {
+        return next(null, 3000000)
       }
-      next(null, 3000000)
     },
     function queryValue (gasLimit, next) {
       if (args.value) {
@@ -349,6 +351,11 @@ UniversalDApp.prototype.runTx = function (args, cb) {
       }
     },
     function runTransaction (fromAddress, value, gasLimit, privateKey, next) {
+      console.log('@universal-dapp.js runTransaction')
+      console.log('* fromAddress: ', fromAddress)
+      console.log('* value: ', value)
+      console.log('* gasLimit: ', gasLimit)
+      console.log('* args: ', args)
       var tx = { to: args.to, data: args.data.dataHex, useCall: args.useCall, from: fromAddress, value: value, gasLimit: gasLimit, privateKey: privateKey }
       var payLoad = { funAbi: args.data.funAbi, funArgs: args.data.funArgs, contractBytecode: args.data.contractBytecode, contractName: args.data.contractName }
       var timestamp = Date.now()
@@ -365,9 +372,9 @@ UniversalDApp.prototype.runTx = function (args, cb) {
 
       self.event.trigger('initiatingTransaction', [timestamp, tx, payLoad])
       self.txRunner.rawRun(tx,
-
         (network, tx, gasEstimation, continueTxExecution, cancelCb) => {
-          if (network.name !== 'Main' && network.name !== 'Goguen') { // @rv: Let user specify gasPrice
+          console.log('@universal-dapp.js self.txRunner.rawRun finished')
+          if (network.name !== 'Main' && network.name !== 'Goguen') { // @rv: Let user specify gasPrice // TODO: custom RPC with IELE backend is not judged here.
             return continueTxExecution(null)
           }
           var amount = executionContext.web3().fromWei(typeConversion.toInt(tx.value), 'ether')

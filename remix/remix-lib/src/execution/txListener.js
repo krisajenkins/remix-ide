@@ -9,6 +9,8 @@ var executionContext = require('./execution-context')
 var txFormat = require('./txFormat')
 var txHelper = require('./txHelper')
 
+const RLP = require('rlp')
+
 /**
   * poll web3 each 2s if web3
   * listen on transaction executed event if VM
@@ -217,14 +219,19 @@ class TxListener {
     var contracts = this._api.contracts()
     if (!contracts) return cb()
     var contractName
+    console.log('@txListener.js _resolveTx')
+    console.log('* tx: ', tx)
     if (!tx.to || tx.to === '0x0') { // testrpc returns 0x0 in that case
       // contract creation / resolve using the creation bytes code
       // if web3: we have to call getTransactionReceipt to get the created address
       // if VM: created address already included
       var code = tx.input
       contractName = this._tryResolveContract(code, contracts, true)
+      console.log('* contractName: ', contractName)
       if (contractName) {
         this._api.resolveReceipt(tx, (error, receipt) => {
+          console.log('- this._api.resolveReceipt')
+          console.log('- * receipt, ', receipt)
           if (error) return cb(error)
           var address = receipt.contractAddress
           this._resolvedContracts[address] = contractName
@@ -264,14 +271,20 @@ class TxListener {
   }
 
   _resolveFunction (contractName, compiledContracts, tx, isCtor) {
-    var contract = txHelper.getContract(contractName, compiledContracts)
+    console.log('@txListener.js _resolveFunction')
+    console.log('* contractName: ', contractName)
+    console.log('* compiledContracts: ', compiledContracts)
+    console.log('* tx: ', tx)
+    console.log('* isCtor: ', isCtor)
+    const contract = txHelper.getContract(contractName, compiledContracts)
     if (!contract) {
       console.log('txListener: cannot resolve ' + contractName)
       return
     }
-    var abi = contract.object.abi
-    var inputData = tx.input.replace('0x', '')
-    if (!isCtor) {
+    const isIele = contract.object.ielevm // @rv: check IELE
+    const abi = contract.object.abi
+    const inputData = tx.input.replace('0x', '')
+    if (!isCtor) { // TODO: check this for IELE
       var methodIdentifiers = contract.object.evm.methodIdentifiers
       for (var fn in methodIdentifiers) {
         if (methodIdentifiers[fn] === inputData.substring(0, 8)) {
@@ -296,25 +309,53 @@ class TxListener {
         params: null
       }
     } else {
-      var bytecode = contract.object.evm.bytecode.object
-      var params = null
-      if (bytecode && bytecode.length) {
-        params = this._decodeInputParams(inputData.substring(bytecode.length), getConstructorInterface(abi))
-      }
-      this._resolvedTransactions[tx.hash] = {
-        contractName: contractName,
-        to: null,
-        fn: '(constructor)',
-        params: params
+      if (isIele) {
+        const bytecode = contract.object.ielevm.bytecode.object 
+        this._resolvedTransactions[tx.hash] = {
+          contractName,
+          to: null,
+          fn: '(constructor)',
+          params: contract.object.abi.filter(x=> x.name === 'init')[0].inputs
+        }
+      } else {
+        var bytecode = contract.object.evm.bytecode.object
+        var params = null
+        if (bytecode && bytecode.length) {
+          params = this._decodeInputParams(inputData.substring(bytecode.length), getConstructorInterface(abi))
+        }
+        this._resolvedTransactions[tx.hash] = {
+          contractName: contractName,
+          to: null,
+          fn: '(constructor)',
+          params: params
+        }
       }
     }
     return this._resolvedTransactions[tx.hash]
   }
 
   _tryResolveContract (codeToResolve, compiledContracts, isCreation) {
+    console.log('@txListener.js _tryResolveContract')
+    console.log('* codeToResolve: ', codeToResolve)
+    console.log('* compiledContracts: ', compiledContracts)
+    console.log('* isCreation: ', isCreation)
     var found = null
     txHelper.visitContracts(compiledContracts, (contract) => {
-      var bytes = isCreation ? contract.object.evm.bytecode.object : contract.object.evm.deployedBytecode.object
+      console.log('- contract: ', contract)
+      const isIele = contract.object.ielevm
+      let bytes 
+      if (isIele) {
+        bytes = contract.object.ielevm.bytecode.object
+        try {
+          codeToResolve = '0x' + RLP.decode(codeToResolve)[0].toString()
+        } catch(error) {
+          return false
+        }
+        console.log('- isIele - bytes: ', bytes)
+        console.log('- codeToResolve: ', codeToResolve)
+      } else {
+        bytes = isCreation ? contract.object.evm.bytecode.object : contract.object.evm.deployedBytecode.object
+      }
       if (codeUtil.compareByteCode(codeToResolve, '0x' + bytes)) {
         found = contract.name
         return true

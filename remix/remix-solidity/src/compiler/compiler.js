@@ -212,7 +212,7 @@ function Compiler (handleImportCall) {
     if (!contractName || !ieleCode) {
       return []
     }
-    let match = ieleCode.match(new RegExp("contract\\s+Factorial\\s+{"))
+    let match = ieleCode.match(new RegExp(`contract\\s+${contractName}\\s+{`))
     if (!match) {
       return []
     }
@@ -253,7 +253,8 @@ function Compiler (handleImportCall) {
           return {
             name: parameter
           }
-        })
+        }),
+        type: 'function'
       })
     }
     return abiArray

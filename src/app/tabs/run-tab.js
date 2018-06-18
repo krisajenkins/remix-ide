@@ -211,6 +211,7 @@ function makeRecorder (appAPI, appEvents, opts, self) {
     api: appAPI
   })
   recorder.event.register('newTxRecorded', (count) => {
+    console.log('@run-tab.js newTxRecorded triggered')
     self.data.count = count
     self._view.recorderCount.innerText = count
   })
@@ -358,8 +359,8 @@ function contractDropdown (events, appAPI, appEvents, opts, self) {
       } else { // iele vm
         const ctrabi = txHelper.getConstructorInterfaceForIELE(contract.object.abi) // TODO: <= support getIELEConstructorInterface
         const ctrIELEVMbc = contract.object.ielevm.bytecode.object
-        const createConstructorInstance = new MultiParamManager(0, ctrabi, (valArray, inputValues)=> {
-          createInstance(inputsValues) // TODO: <= support createIELEInstance
+        const createConstructorInstance = new MultiParamManager(0, ctrabi, (valArray, inputsValues)=> {
+          createInstance(inputsValues, true) // TODO: <= support createIELEInstance
         }, txHelper.inputParametersDeclarationToString(ctrabi.inputs), 'Deploy (IELE)', ctrIELEVMbc, true)
         createPanel.appendChild(createConstructorInstance.render())
       }
@@ -371,15 +372,33 @@ function contractDropdown (events, appAPI, appEvents, opts, self) {
   selectContractNames.addEventListener('change', setInputParamsPlaceHolder)
 
   // DEPLOY INSTANCE
-  function createInstance (args) {
-    var selectedContract = getSelectedContract()
+  /**
+   * @rv
+   * @param {} args 
+   * @param {boolean} isIele whether this is iele contract or not 
+   */
+  function createInstance (args, isIele) {
+    const selectedContract = getSelectedContract()
 
-    if (selectedContract.contract.object.evm.bytecode.object.length === 0) {
-      modalDialogCustom.alert('This contract does not implement all functions and thus cannot be created.')
-      return
+    if (isIele) {
+      if (selectedContract.contract.object.ielevm.bytecode.object.length === 0) {
+        modalDialogCustom.alert('This contract does not implement all functions and thus cannot be created.')
+        return
+      }
+    } else {
+      if (selectedContract.contract.object.evm.bytecode.object.length === 0) { // evm
+        modalDialogCustom.alert('This contract does not implement all functions and thus cannot be created.')
+        return
+      } 
     }
 
-    var constructor = txHelper.getConstructorInterface(selectedContract.contract.object.abi)
+    let constructor
+    if (isIele) {
+      constructor = txHelper.getConstructorInterfaceForIELE(selectedContract.contract.object.abi)
+    } else {
+      constructor = txHelper.getConstructorInterface(selectedContract.contract.object.abi)
+    }
+
     txFormat.buildData(selectedContract.name, selectedContract.contract.object, opts.compiler.getContracts(), true, constructor, args, (error, data) => {
       if (!error) {
         appAPI.logMessage(`creation of ${selectedContract.name} pending...`)

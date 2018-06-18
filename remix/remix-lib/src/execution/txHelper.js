@@ -10,7 +10,17 @@ module.exports = {
     return typeDef.type
   },
 
-  encodeParams: function (funABI, args) {
+  /**
+   * @rv: Modify encodeParams to support iele.
+   * @param {{name: string, inputs: {name: string, type: string}[]}} funABI
+   * @param {any[]} args 
+   * @param {boolean} isIele
+   */
+  encodeParams: function (funABI, args, isIele) {
+    if (isIele) {
+      return args
+    }
+
     var types = []
     if (funABI.inputs && funABI.inputs.length) {
       for (var i = 0; i < funABI.inputs.length; i++) {
