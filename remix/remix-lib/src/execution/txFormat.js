@@ -16,9 +16,9 @@ module.exports = {
     *
     * @param {Object} function abi
     * @param {Object} values to encode
-    * @param {String} contractbyteCode
+    * @param {String} contractBytecode
     */
-  encodeData: function (funABI, values, contractbyteCode, isIele) { // @rv: add `isIele`
+  encodeData: function (funABI, values, contractBytecode, isIele) { // @rv: add `isIele`
     var encoded
     var encodedHex
     try {
@@ -28,14 +28,14 @@ module.exports = {
       return { error: 'cannot encode arguments' }
     }
     if (isIele) {
-      if (contractbyteCode) {
-        return { data: RLP.encode([contractbyteCode, encoded]).toString('hex') }
+      if (contractBytecode) {
+        return { data: RLP.encode([(contractBytecode.startsWith('0x') ? '' : '0x') + contractBytecode, encoded]).toString('hex') }
       } else {
         return { data: RLP.encode([funABI.name, encoded]).toString('hex') }
       }
     } else {
-      if (contractbyteCode) {
-        return { data: '0x' + contractbyteCode + encodedHex.replace('0x', '') }
+      if (contractBytecode) {
+        return { data: '0x' + contractBytecode + encodedHex.replace('0x', '') }
       } else {
         return { data: helper.encodeFunctionId(funABI) + encodedHex.replace('0x', '') }
       }
@@ -179,25 +179,26 @@ module.exports = {
   * @param {string} contractName
   * @param {object} contract    - abi definition of the current contract.
   * @param {object} contracts    - map of all compiled contracts.
-  * @param {bool} isConstructor    - isConstructor.
+  * @param {boolean} isIele - check if it's iele data
+  * @param {boolean} isConstructor    - isConstructor.
   * @param {object} funAbi    - abi definition of the function to call. null if building data for the ctor.
   * @param {object} params    - input paramater of the function to call
   * @param {function} callback    - callback
   * @param {function} callbackStep  - callbackStep
   * @param {function} callbackDeployLibrary  - callbackDeployLibrary
   */
-  buildData: function (contractName, contract, contracts, isConstructor, funAbi, params, callback, callbackStep, callbackDeployLibrary) {
+  buildData: function (contractName, contract, contracts, isIele, isConstructor, funAbi, params, callback, callbackStep, callbackDeployLibrary) {
     console.log('@txFormat.js buildData => ')
     console.log('* contractName: ', contractName)
     console.log('* contract: ', contract)
     console.log('* contracts: ', contracts)
+    console.log('* isIele: ', isIele)
     console.log('* isConstructor: ', isConstructor)
     console.log('* funAbi: ', funAbi)
     console.log('* params: ', params)
     var funArgs = ''
     var data = ''
     var dataHex = ''
-    const isIele = contract.ielevm // @rv: check if this is a Iele contract.
 
     if (params.indexOf('raw:0x') === 0) {
       // in that case we consider that the input is already encoded and *does not* contain the method signature
@@ -212,7 +213,7 @@ module.exports = {
         callback('Error encoding arguments: ' + e)
         return
       }
-      if (!isConstructor || funArgs.length > 0) {
+      if (!isConstructor || funArgs.length > 0 || isIele) { // <= @rv, add `||isIele` flag
         try {
           data = helper.encodeParams(funAbi, funArgs, isIele) // @rv: Support iele
           dataHex = data.toString('hex')
@@ -234,11 +235,12 @@ module.exports = {
         console.log('@txFormat.js deploy IELE smart contract: ')
         console.log('* contractByteCode: ', contract.ielevm.bytecode.object)
         console.log('* data: ', data)
+        console.log('* funArgs: ', funArgs)
         contractBytecode = contract.ielevm.bytecode.object 
         window['RLP'] = RLP 
         window['data'] = data 
         window['contractBytecode'] = contractBytecode
-        dataHex = RLP.encode([contractBytecode, data]).toString('hex')
+        dataHex = RLP.encode([(contractBytecode.startsWith('0x') ? '' : '0x') + contractBytecode, data]).toString('hex') // 0x here is necessary
         console.log('* dataHex: ', dataHex)
       } else {
         contractBytecode = contract.evm.bytecode.object
@@ -262,6 +264,7 @@ module.exports = {
         console.log('@txFormat.js call function: ')
         console.log('* funAbi.name: ', funAbi.name)
         console.log('* data: ', data)
+        console.log('* funArgs: ', funArgs)
         dataHex = RLP.encode([funAbi.name, data]).toString('hex')
         console.log('* dataHex: ', dataHex)
       } else {

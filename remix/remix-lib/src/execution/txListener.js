@@ -36,6 +36,15 @@ class TxListener {
     })
 
     opt.event.udapp.register('callExecuted', (error, from, to, data, lookupOnly, txResult) => {
+      console.log('@txListener.js callExecuted event')
+      console.log('* error: ', error)
+      console.log('* from: ', from)
+      console.log('* to: ', to)
+      console.log('* data: ', data)
+      console.log('* lookupOnly: ', lookupOnly)
+      console.log('* txResult: ', txResult)
+      window['txResult'] = txResult
+
       if (error) return
       // we go for that case if
       // in VM mode
@@ -284,29 +293,51 @@ class TxListener {
     const isIele = contract.object.ielevm // @rv: check IELE
     const abi = contract.object.abi
     const inputData = tx.input.replace('0x', '')
+    console.log('* isIele: ', isIele)
+    console.log('* abi: ', abi)
+    console.log('* inputData: ', inputData)
     if (!isCtor) { // TODO: check this for IELE
-      var methodIdentifiers = contract.object.evm.methodIdentifiers
-      for (var fn in methodIdentifiers) {
-        if (methodIdentifiers[fn] === inputData.substring(0, 8)) {
-          var fnabi = getFunction(abi, fn)
-          this._resolvedTransactions[tx.hash] = {
-            contractName: contractName,
-            to: tx.to,
-            fn: fn,
-            params: this._decodeInputParams(inputData.substring(8), fnabi)
-          }
-          if (tx.returnValue) {
-            this._resolvedTransactions[tx.hash].decodedReturnValue = txFormat.decodeResponse(tx.returnValue, fnabi)
-          }
-          return this._resolvedTransactions[tx.hash]
+      if (isIele) {
+        const decoded = RLP.decode('0x' + inputData)
+        console.log('* !isCtor -> isIele => decoded: ', decoded)
+        const targetMethodIdentifier = decoded[0].toString()
+        const params = decoded[1]
+        this._resolvedTransactions[tx.hash] = {
+          contractName: contractName,
+          to: tx.to,
+          fn: targetMethodIdentifier,
+          params
         }
-      }
-      // fallback function
-      this._resolvedTransactions[tx.hash] = {
-        contractName: contractName,
-        to: tx.to,
-        fn: '(fallback)',
-        params: null
+        if (tx.returnValue) {
+          window['tx'] = tx
+          window['decoded'] = decoded
+          this._resolvedTransactions[tx.hash].decodedReturnValue = RLP.decode(tx.returnValue)
+        }
+        return this._resolvedTransactions[tx.hash]
+      } else {
+        var methodIdentifiers = contract.object.evm.methodIdentifiers
+        for (var fn in methodIdentifiers) {
+          if (methodIdentifiers[fn] === inputData.substring(0, 8)) {
+            var fnabi = getFunction(abi, fn)
+            this._resolvedTransactions[tx.hash] = {
+              contractName: contractName,
+              to: tx.to,
+              fn: fn,
+              params: this._decodeInputParams(inputData.substring(8), fnabi)
+            }
+            if (tx.returnValue) {
+              this._resolvedTransactions[tx.hash].decodedReturnValue = txFormat.decodeResponse(tx.returnValue, fnabi)
+            }
+            return this._resolvedTransactions[tx.hash]
+          }
+        }
+        // fallback function
+        this._resolvedTransactions[tx.hash] = {
+          contractName: contractName,
+          to: tx.to,
+          fn: '(fallback)',
+          params: null
+        }
       }
     } else {
       if (isIele) {
@@ -315,7 +346,7 @@ class TxListener {
           contractName,
           to: null,
           fn: '(constructor)',
-          params: contract.object.abi.filter(x=> x.name === 'init')[0].inputs
+          params: contract.object.abi.filter(x=> x.type === 'constructor')[0].inputs
         }
       } else {
         var bytecode = contract.object.evm.bytecode.object
@@ -347,7 +378,7 @@ class TxListener {
       if (isIele) {
         bytes = contract.object.ielevm.bytecode.object
         try {
-          codeToResolve = '0x' + RLP.decode(codeToResolve)[0].toString()
+          codeToResolve = '0x' + RLP.decode(codeToResolve)[0].toString('hex')
         } catch(error) {
           return false
         }

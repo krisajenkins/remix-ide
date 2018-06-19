@@ -176,7 +176,13 @@ UniversalDApp.prototype.pendingTransactions = function () {
 }
 
 UniversalDApp.prototype.call = function (isUserAction, args, value, lookupOnly, outputCb) {
+  console.log('@universal-dapp.js UniversalDApp.prototype.call')
+  console.log('* isUserAction: ', isUserAction)
+  console.log('* args: ', args)
+  console.log('* value: ', value)
+  console.log('* lookupOnly: ', lookupOnly)
   const self = this
+  const isIele = args.isIele
   var logMsg
   if (isUserAction) {
     if (!args.funABI.constant) {
@@ -186,7 +192,7 @@ UniversalDApp.prototype.call = function (isUserAction, args, value, lookupOnly, 
     }
   }
   // TODO: @rv: support IELE
-  txFormat.buildData(args.contractName, args.contractAbi, self.contracts, false, args.funABI, value, (error, data) => {
+  txFormat.buildData(args.contractName, args.contractAbi, self.contracts, isIele, false, args.funABI, value, (error, data) => {
     if (!error) {
       if (isUserAction) {
         if (!args.funABI.constant) {

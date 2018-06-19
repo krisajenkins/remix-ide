@@ -171,7 +171,7 @@ function Compiler (handleImportCall) {
                   methods: {}
                 },
                 metadata: {
-                  compiler: 'sol2iele'
+                  vm: 'iele vm'
                 },
                 ielevm: {
                   bytecode: {
@@ -241,12 +241,17 @@ function Compiler (handleImportCall) {
     ieleCode = ieleCode.slice(0, i + 1)
 
     // analyze functions
-    const regex = /\sdefine\s+(?:public\s+)*\@([\w\W]+?)\(([^)]*?)\)\s*\{/g
+    const regex = /\sdefine\s+(public\s+)*\@([\w\W]+?)\(([^)]*?)\)\s*\{/g
     const abiArray = []
     match = null
     while ((match = regex.exec(ieleCode)) !== null) {
-      const functionName = match[1]
-      const parameters = match[2].split(',').map((x)=> x.trim()).filter(x=>x)
+      const public_ = (match[1] || '').trim()
+      const functionName = match[2].trim()
+      if (!public_ && functionName !== 'init') { // ignore private functions excluding @init
+        continue
+      }
+      const parameters = match[3].split(',').map((x)=> x.trim()).filter(x=>x)
+      const type = (functionName === 'init') ? 'constructor' : 'function'
       abiArray.push({
         name: functionName,
         inputs: parameters.map((parameter)=> {
@@ -254,7 +259,7 @@ function Compiler (handleImportCall) {
             name: parameter
           }
         }),
-        type: 'function'
+        type
       })
     }
     return abiArray

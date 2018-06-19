@@ -399,7 +399,7 @@ function contractDropdown (events, appAPI, appEvents, opts, self) {
       constructor = txHelper.getConstructorInterface(selectedContract.contract.object.abi)
     }
 
-    txFormat.buildData(selectedContract.name, selectedContract.contract.object, opts.compiler.getContracts(), true, constructor, args, (error, data) => {
+    txFormat.buildData(selectedContract.name, selectedContract.contract.object, opts.compiler.getContracts(), isIele, true, constructor, args, (error, data) => {
       if (!error) {
         appAPI.logMessage(`creation of ${selectedContract.name} pending...`)
         opts.udapp.createContract(data, (error, txResult) => {

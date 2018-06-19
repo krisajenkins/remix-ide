@@ -188,6 +188,10 @@ class MultiParamManager {
 
     var contractProperty = yo`<div class="${css.contractProperty}">${this.contractActionsContainerSingle} ${this.contractActionsContainerMulti}</div>`
 
+    //if (this.isIele) {
+    //  contractProperty.classList.add(css.iele)
+    //}
+
     if (this.lookupOnly) {
       contractProperty.classList.add(css.constant)
       button.setAttribute('title', (title + ' - call'))

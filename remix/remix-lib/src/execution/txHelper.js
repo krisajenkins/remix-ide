@@ -15,9 +15,21 @@ module.exports = {
    * @param {{name: string, inputs: {name: string, type: string}[]}} funABI
    * @param {any[]} args 
    * @param {boolean} isIele
+   * @return {string[]|string} if isIele, returns string[], else returns string
    */
   encodeParams: function (funABI, args, isIele) {
+    console.log('@txHelper.js encodeParams')
+    console.log('* funABI: ', funABI)
+    console.log('* args: ', args)
+    console.log('* isIele: ', isIele)
     if (isIele) {
+      args = args.map((x)=> {
+        if (x.startsWith('0x')) {
+          return x
+        } else {
+          return '0x' + x
+        }
+      })
       return args
     }
 
@@ -87,11 +99,12 @@ module.exports = {
   },
 
   getConstructorInterfaceForIELE: function(abi) {
-    const constructorAbi = abi.filter((x)=> x.name === 'init')[0]
+    const constructorAbi = abi.filter((x)=> x.type === 'constructor')[0]
     if (!constructorAbi) {
       return {
         name: 'init',
-        inputs: []
+        inputs: [],
+        type: 'constructor'
       }
     } else {
       return constructorAbi

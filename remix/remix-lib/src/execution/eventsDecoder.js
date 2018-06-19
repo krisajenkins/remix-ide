@@ -34,10 +34,23 @@ class EventsDecoder {
     if (!receipt.logs) {
       return cb(null, { decoded: [], raw: [] })
     }
+    console.log('@eventsDecoder.js _decodeLogs')
+    console.log('* tx: ', tx)
+    console.log('* receipt: ', receipt)
+    console.log('* contract: ', contract)
+    console.log('* contracts: ', contracts)
+
     this._decodeEvents(tx, receipt.logs, contract, contracts, cb)
   }
 
   _eventABI (contract) {
+    // TODO: @rv: support event log for IELE
+    console.log('@eventsDecoder.js _eventABI')
+    console.log('* contract: ', contract)
+    if (contract.ielevm) {
+      return {}
+    }
+    
     var eventABI = {}
     var abi = new ethers.Interface(contract.abi)
     for (var e in abi.events) {
