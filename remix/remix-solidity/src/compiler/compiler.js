@@ -103,13 +103,61 @@ function Compiler (handleImportCall) {
         code = code.replace(/^IELE\s+assembly\s*\:\s*$/mgi, '')
         const ieleCode = code.replace(/^=====/mg, '// =====')
         const newTarget = source.target.replace(/\.sol$/, '.iele')
-        const newSources = {[newTarget]: {content: ieleCode}}
-        return compileIELE(newSources, newTarget)
+        const contractNamesMatch = ieleCode.match(/\s*contract\s+(.+?){\s*/ig) // the last contract is the main contract (from Dwight)
+        let contractName = ""
+        if (contractNamesMatch) {
+          contractName = contractNamesMatch[contractNamesMatch.length - 1].trim().split(/\s+/)[1]
+        }
+        const targetContractName = contractName.slice(contractName.lastIndexOf(':')+1, contractName.length).replace(/"$/, '')
+
+        window['fetch'](apiGateway, {
+          method: 'POST',
+          cors: true,
+          body: JSON.stringify({
+            method: 'iele_asm',
+            params: [newTarget, {[newTarget]: ieleCode}],
+            jsonrpc: '2.0'
+          })
+        })
+        .then(response=> response.json())
+        .then(json=> {
+          if (json[error]) { // TODO: better way of display this error message
+            return cb({ error: json['error']['data'].toString() })
+          } else {
+            const r = json['result']
+            const bytecode = isNaN('0x' + r) ? '' : r
+            console.log('- contractName: ', contractName)
+            console.log('- targetContractName: ', targetContractName)
+            const contracts = result.contracts[source.target] || {}
+            for (const name in contracts) {
+              if (name !== targetContractName) {
+                delete(contracts[name])
+              }
+            }
+            contracts[targetContractName]['metadata'] = {
+              vm: 'iele vm'
+            }
+            contracts[targetContractName]['ielevm'] = {
+              bytecode: {
+                object: bytecode
+              },
+              gasEstimate: {
+                codeDepositCost: '0',
+                executionCost: '0',
+                totalCost: '0'
+              }
+            }
+            delete(contracts[targetContractName]['evm'])
+            return cb(result)            
+          }
+        })
+        .catch(
+          (error)=> cb({ error: error.toString() })
+        )
       }
-      // cb()
     })
     .catch(
-      // ()=> cb()
+      (error)=> cb({ error: error.toString() })
     )
   }
 
@@ -291,7 +339,9 @@ function Compiler (handleImportCall) {
           result = JSON.parse(result)
         
           if (compileToIELE) {
-            return compileSolidityToIELE(result, source)
+            return compileSolidityToIELE(result, source, (result)=> {
+              return compilationFinished(result, missingInputs, source)
+            })
           }
           
           console.log('@compileJSON .sol => result:\n', result)
