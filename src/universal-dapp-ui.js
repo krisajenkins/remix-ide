@@ -122,7 +122,7 @@ UniversalDAppUI.prototype.getCallButton = function (args) {
         newFunABI.constant = lookupOnly
         newArgs.funABI = newFunABI
       }
-      self.udapp.call(true, newArgs, inputsValues, lookupOnly, isIele, (decoded) => {
+      self.udapp.call(true, newArgs, inputsValues, lookupOnly, (decoded) => {
         outputOverride.innerHTML = ''
         outputOverride.appendChild(decoded)
       })

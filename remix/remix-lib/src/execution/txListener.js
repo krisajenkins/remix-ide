@@ -35,7 +35,7 @@ class TxListener {
       }
     })
 
-    opt.event.udapp.register('callExecuted', (error, from, to, data, lookupOnly, txResult) => {
+    opt.event.udapp.register('callExecuted', (error, from, to, data, lookupOnly, txResult, timestamp, payload, isIele) => {
       console.log('@txListener.js callExecuted event')
       console.log('* error: ', error)
       console.log('* from: ', from)
@@ -43,6 +43,9 @@ class TxListener {
       console.log('* data: ', data)
       console.log('* lookupOnly: ', lookupOnly)
       console.log('* txResult: ', txResult)
+      console.log('* timestamp: ', timestamp)
+      console.log('* payload: ', payload)
+      console.log('* isIele: ', isIele)
       window['txResult'] = txResult
 
       if (error) return
@@ -52,13 +55,21 @@ class TxListener {
       if (!this._isListening) return // we don't listen
       if (this._loopId && executionContext.getProvider() !== 'vm') return // we seems to already listen on a "web3" network
 
-      var call = {
+      let returnValue
+      if (executionContext.isVM()) {
+        returnValue = txResult.result.vm.return
+      } else if (!isIele) {
+        returnValue = ethJSUtil.toBuffer(txResult.result)
+      } else {
+        returnValue = RLP.decode(txResult.result).map(x=>x.toString('hex'))
+      }
+      const call = {
         from: from,
         to: to,
         input: data,
         hash: txResult.transactionHash ? txResult.transactionHash : 'call' + (from || '') + to + data,
         isCall: true,
-        returnValue: executionContext.isVM() ? txResult.result.vm.return : ethJSUtil.toBuffer(txResult.result),
+        returnValue,
         envMode: executionContext.getProvider()
       }
 
@@ -236,7 +247,8 @@ class TxListener {
       // if VM: created address already included
       var code = tx.input
       contractName = this._tryResolveContract(code, contracts, true)
-      console.log('* contractName: ', contractName)
+      console.log('* 1 contractName: ', contractName)
+      console.log('* 1 this._resolvedContracts: ', this._resolvedContracts)
       if (contractName) {
         this._api.resolveReceipt(tx, (error, receipt) => {
           console.log('- this._api.resolveReceipt')
@@ -256,6 +268,8 @@ class TxListener {
     } else {
       // first check known contract, resolve against the `runtimeBytecode` if not known
       contractName = this._resolvedContracts[tx.to]
+      console.log('* 2 contractName: ', contractName)
+      console.log('* 2 this._resolvedContracts: ', this._resolvedContracts)
       if (!contractName) {
         executionContext.web3().eth.getCode(tx.to, (error, code) => {
           if (error) return cb(error)
@@ -290,7 +304,7 @@ class TxListener {
       console.log('txListener: cannot resolve ' + contractName)
       return
     }
-    const isIele = contract.object.ielevm // @rv: check IELE
+    const isIele = !!(contract.object.ielevm) // @rv: check IELE
     const abi = contract.object.abi
     const inputData = tx.input.replace('0x', '')
     console.log('* isIele: ', isIele)
@@ -311,7 +325,7 @@ class TxListener {
         if (tx.returnValue) {
           window['tx'] = tx
           window['decoded'] = decoded
-          this._resolvedTransactions[tx.hash].decodedReturnValue = RLP.decode(tx.returnValue)
+          this._resolvedTransactions[tx.hash].decodedReturnValue = tx.returnValue
         }
         return this._resolvedTransactions[tx.hash]
       } else {
@@ -376,9 +390,9 @@ class TxListener {
       const isIele = contract.object.ielevm
       let bytes 
       if (isIele) {
-        bytes = contract.object.ielevm.bytecode.object
+        bytes = contract.object.ielevm.bytecode.object.toLowerCase()
         try {
-          codeToResolve = '0x' + RLP.decode(codeToResolve)[0].toString('hex')
+          codeToResolve = '0x' + RLP.decode(codeToResolve)[0].toString('hex').toLowerCase()
         } catch(error) {
           return false
         }

@@ -271,7 +271,7 @@ module.exports = {
         dataHex = helper.encodeFunctionId(funAbi) + dataHex
       }
     }
-    callback(null, { dataHex, funAbi, funArgs, contractBytecode, contractName: contractName })
+    callback(null, { dataHex, funAbi, funArgs, contractBytecode, contractName: contractName, isIele })
   },
 
   atAddress: function () {},

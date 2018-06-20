@@ -246,7 +246,7 @@ function Compiler (handleImportCall) {
     match = null
     while ((match = regex.exec(ieleCode)) !== null) {
       const public_ = (match[1] || '').trim()
-      const functionName = match[2].trim()
+      const functionName = match[2].trim().replace(/^"/, '').replace(/"$/, '')
       if (!public_ && functionName !== 'init') { // ignore private functions excluding @init
         continue
       }

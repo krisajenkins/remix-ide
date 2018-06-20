@@ -212,8 +212,16 @@ UniversalDApp.prototype.call = function (isUserAction, args, value, lookupOnly, 
             }
           }
           if (lookupOnly) {
-            var decoded = uiUtil.decodeResponseToTreeView(executionContext.isVM() ? txResult.result.vm.return : ethJSUtil.toBuffer(txResult.result), args.funABI)
-            outputCb(decoded)
+            if (isIele) {
+              // TODO: result dom elemment
+              const returnValue = RLP.decode(txResult.result).map(x=> '0x'+x.toString('hex'))
+              const resultElement = document.createElement('span')
+              resultElement.innerText = returnValue
+              return outputCb(resultElement)
+            } else {
+              var decoded = uiUtil.decodeResponseToTreeView((executionContext.isVM() ? txResult.result.vm.return : ethJSUtil.toBuffer(txResult.result)), args.funABI)
+              return outputCb(decoded)
+            }
           }
         } else {
           self._api.logMessage(`${logMsg} errored: ${error} `)
@@ -380,7 +388,7 @@ UniversalDApp.prototype.runTx = function (args, cb) {
       self.txRunner.rawRun(tx,
         (network, tx, gasEstimation, continueTxExecution, cancelCb) => {
           console.log('@universal-dapp.js self.txRunner.rawRun finished')
-          if (network.name !== 'Main' && network.name !== 'Goguen') { // @rv: Let user specify gasPrice // TODO: custom RPC with IELE backend is not judged here.
+          if (network.name !== 'Main' && !executionContext.isCustomRPC()) { // @rv: Let user specify gasPrice
             return continueTxExecution(null)
           }
           var amount = executionContext.web3().fromWei(typeConversion.toInt(tx.value), 'ether')
@@ -458,7 +466,7 @@ UniversalDApp.prototype.runTx = function (args, cb) {
         },
         function (error, result) {
           let eventName = (tx.useCall ? 'callExecuted' : 'transactionExecuted')
-          self.event.trigger(eventName, [error, tx.from, tx.to, tx.data, tx.useCall, result, timestamp, payLoad])
+          self.event.trigger(eventName, [error, tx.from, tx.to, tx.data, tx.useCall, result, timestamp, payLoad, args.data.isIele])
 
           if (error && (typeof (error) !== 'string')) {
             if (error.message) error = error.message
