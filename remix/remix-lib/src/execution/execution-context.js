@@ -124,6 +124,13 @@ function ExecutionContext () {
     return this.isVM() ? web3VM : web3
   }
 
+  this.isIeleVM = function() { // TODO: @rv: use new endpoint to check if the node is using iele vm
+    if (executionContext.match(/localhost/)) { //TODO: @rv: change this line
+      return true
+    }
+    return false
+  }
+
   this.detectNetwork = function (callback) {
     if (this.isVM()) {
       callback(null, { id: '-', name: 'VM' })

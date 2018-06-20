@@ -908,7 +908,7 @@ Please make a backup of your contracts and start using http://remix.ethereum.org
               console.log(error)
             } else {
               sources[target] = { content }
-              compiler.compile(sources, target, config.get('compileToIELE'))
+              compiler.compile(sources, target, executionContext.isIeleVM()) // @rv: check if compile with iele vm
             }
           })
         } else {

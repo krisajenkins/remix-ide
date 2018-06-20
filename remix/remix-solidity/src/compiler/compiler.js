@@ -97,17 +97,20 @@ function Compiler (handleImportCall) {
     .then(response=>response.json())
     .then(json => {
       if (json['result'] && !json['error']) {
-        let result = json['result']
-        const index = result.indexOf('\n=====')
-        result = result.slice(index, result.length)
-        result = result.replace(/^IELE\s+assembly\s*\:\s*$/mgi, '')
-        ieleCode = result.replace(/^=====/mg, '// =====')
-
-
+        let code = json['result']
+        const index = code.indexOf('\n=====')
+        code = code.slice(index, code.length)
+        code = code.replace(/^IELE\s+assembly\s*\:\s*$/mgi, '')
+        const ieleCode = code.replace(/^=====/mg, '// =====')
+        const newTarget = source.target.replace(/\.sol$/, '.iele')
+        const newSources = {[newTarget]: {content: ieleCode}}
+        return compileIELE(newSources, newTarget)
       }
-      cb()
+      // cb()
     })
-    .catch(()=> cb())
+    .catch(
+      // ()=> cb()
+    )
   }
 
   function formatIeleErrors(message, target) {
@@ -286,14 +289,12 @@ function Compiler (handleImportCall) {
           var input = compilerInput(source.sources, {optimize: optimize, target: source.target})
           result = compiler.compileStandardWrapper(input, missingInputsCallback)
           result = JSON.parse(result)
-          /*
+        
           if (compileToIELE) {
-            return compileSolidityToIELE(result, source, ()=> {
-              compilationFinished(result, missingInputs, source)
-            })
+            return compileSolidityToIELE(result, source)
           }
-          */
-         console.log('@compileJSON .sol => result:\n', result)
+          
+          console.log('@compileJSON .sol => result:\n', result)
         } catch (exception) {
           result = { error: 'Uncaught JavaScript exception:\n' + exception }
         }

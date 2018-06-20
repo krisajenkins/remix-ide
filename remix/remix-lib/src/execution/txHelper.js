@@ -23,13 +23,6 @@ module.exports = {
     console.log('* args: ', args)
     console.log('* isIele: ', isIele)
     if (isIele) {
-      args = args.map((x)=> {
-        if (x.startsWith('0x')) {
-          return x
-        } else {
-          return '0x' + x
-        }
-      })
       return args
     }
 
