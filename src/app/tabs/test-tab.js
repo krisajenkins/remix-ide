@@ -66,8 +66,7 @@ module.exports = class TestTab {
       })
     }
 
-    function runTest (testFilePath, callback) {
-      var provider = api.fileProviderOf(testFilePath)
+    function runTest (testFilePath, provider, callback) {
       provider.get(testFilePath, (error, content) => {
         if (!error) {
           var runningTest = {}
@@ -83,13 +82,14 @@ module.exports = class TestTab {
     let runTests = function () {
       container.innerHTML = ''
       var path = api.currentPath()
+      var provider = api.fileProviderOf(path)
       var tests = []
       api.filesFromPath(path, (error, files) => {
         if (!error) {
           for (var file in files) {
-            if (/.(_test.sol)$/.exec(file)) tests.push(path + file)
+            if (/.(_test.sol)$/.exec(file)) tests.push(provider.type + '/' + file)
           }
-          async.eachOfSeries(tests, (value, key, callback) => { runTest(value, callback) })
+          async.eachOfSeries(tests, (value, key, callback) => { runTest(value, provider, callback) })
         }
       })
     }
