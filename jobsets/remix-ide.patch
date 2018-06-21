@@ -1,3 +1,21 @@
+diff --git a/jobsets/remix-ide.patch b/jobsets/remix-ide.patch
+index e8fad35a..e69de29b 100644
+--- a/jobsets/remix-ide.patch
++++ b/jobsets/remix-ide.patch
+@@ -1,13 +0,0 @@
+-diff --git a/package.json b/package.json
+-index 7b8cfa38..6f0bcc80 100644
+---- a/package.json
+-+++ b/package.json
+-@@ -172,7 +172,7 @@
+-     "serve_debugger": "execr --silent http-server src/app/debugger/remix-debugger",
+-     "sourcemap": "exorcist --root ../ build/app.js.map > build/app.js",
+-     "start": "npm-run-all -lpr serve watch onchange remixd",
+--    "test": "npm run csslint; standard && node test/index.js",
+-+    "test": "npm run csslint; node test/index.js",
+-     "test-browser": "npm-run-all -lpr selenium downloadsolc_root make-mock-compiler serve browsertest",
+-     "watch": "watchify src/index.js -dv -p browserify-reload -o build/app.js"
+-   }
 diff --git a/package.json b/package.json
 index 7b8cfa38..6f0bcc80 100644
 --- a/package.json
@@ -11,3 +29,15 @@ index 7b8cfa38..6f0bcc80 100644
      "test-browser": "npm-run-all -lpr selenium downloadsolc_root make-mock-compiler serve browsertest",
      "watch": "watchify src/index.js -dv -p browserify-reload -o build/app.js"
    }
+diff --git a/src/app.js b/src/app.js
+index c72a65d1..8056c908 100644
+--- a/src/app.js
++++ b/src/app.js
+@@ -221,6 +221,7 @@ function run () {
+ Please only use it if you know what you are doing, otherwise visit the stable version at http://remix.ethereum.org.`)
+   } else if (window.location.protocol.indexOf('http') === 0 &&
+   window.location.hostname !== 'remix.ethereum.org' &&
++  window.location.hostname !== 'remix-staging-iele.kevm-private.mantis.iohkdev.io' &&
+   window.location.hostname !== 'localhost' &&
+   window.location.hostname !== '127.0.0.1') {
+     modalDialogCustom.alert(`The Remix IDE has moved to http://remix.ethereum.org.\n
