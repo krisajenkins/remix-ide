@@ -174,12 +174,11 @@ module.exports = {
   },
 
   /**
-  * (DEPRECATED) build the transaction data
+  * build the transaction data
   *
   * @param {string} contractName
-  * @param {object} contract    - abi definition of the current contract.
+  * @param {{sourceLanguage: string, vm: string, ielevm?: object, evm?: object, abi: object}} contract    - contract object.
   * @param {object} contracts    - map of all compiled contracts.
-  * @param {boolean} isIele - check if it's iele data
   * @param {boolean} isConstructor    - isConstructor.
   * @param {object} funAbi    - abi definition of the function to call. null if building data for the ctor.
   * @param {object} params    - input paramater of the function to call
@@ -187,12 +186,11 @@ module.exports = {
   * @param {function} callbackStep  - callbackStep
   * @param {function} callbackDeployLibrary  - callbackDeployLibrary
   */
-  buildData: function (contractName, contract, contracts, isIele, isConstructor, funAbi, params, callback, callbackStep, callbackDeployLibrary) {
+  buildData: function (contractName, contract, contracts, isConstructor, funAbi, params, callback, callbackStep, callbackDeployLibrary) {
     console.log('@txFormat.js buildData => ')
     console.log('* contractName: ', contractName)
     console.log('* contract: ', contract)
     console.log('* contracts: ', contracts)
-    console.log('* isIele: ', isIele)
     console.log('* isConstructor: ', isConstructor)
     console.log('* funAbi: ', funAbi)
     console.log('* params: ', params)
@@ -206,19 +204,16 @@ module.exports = {
       data = Buffer.from(dataHex, 'hex')
     } else {
       try {
-        if (!isIele) {
-          // @rv: This is not necessary for iele code.
-          params = params.replace(/(^|,\s+|,)(\d+)(\s+,|,|$)/g, '$1"$2"$3') // replace non quoted number by quoted number
-        }
+        params = params.replace(/(^|,\s+|,)(\d+)(\s+,|,|$)/g, '$1"$2"$3') // replace non quoted number by quoted number
         params = params.replace(/(^|,\s+|,)(0[xX][0-9a-fA-F]+)(\s+,|,|$)/g, '$1"$2"$3') // replace non quoted hex string by quoted hex string
         funArgs = JSON.parse('[' + params + ']')
       } catch (e) {
         callback('Error encoding arguments: ' + e)
         return
       }
-      if (!isConstructor || funArgs.length > 0 || isIele) { // <= @rv, add `||isIele` flag
+      if (!isConstructor || funArgs.length > 0 || contract.vm === 'ielevm') {
         try {
-          data = helper.encodeParams(funAbi, funArgs, isIele) // @rv: Support iele
+          data = helper.encodeParams(funAbi, funArgs, contract.sourceLanguage, contract.vm) // @rv: Support iele
           dataHex = data.toString('hex')
         } catch (e) {
           callback('Error encoding arguments: ' + e)
@@ -234,7 +229,7 @@ module.exports = {
     }
     var contractBytecode
     if (isConstructor) {
-      if (isIele) {
+      if (contract.vm === 'ielevm') {
         console.log('@txFormat.js deploy IELE smart contract: ')
         console.log('* contractByteCode: ', contract.ielevm.bytecode.object)
         console.log('* data: ', data)
@@ -254,7 +249,7 @@ module.exports = {
               callback('Error deploying required libraries: ' + err)
             } else {
               bytecodeToDeploy = bytecode + dataHex
-              return callback(null, {dataHex: bytecodeToDeploy, funAbi, funArgs, contractBytecode, contractName: contractName})
+              return callback(null, {dataHex: bytecodeToDeploy, funAbi, funArgs, contractBytecode, contractName, contract})
             }
           }, callbackStep, callbackDeployLibrary)
           return
@@ -263,21 +258,25 @@ module.exports = {
         }
       }
     } else {
-      if (isIele) {
+      if (contract.vm === 'ielevm') {
         console.log('@txFormat.js call function: ')
         console.log('* funAbi.name: ', funAbi.name)
         console.log('* data: ', data)
         console.log('* funArgs: ', funArgs)
-        dataHex = RLP.encode([funAbi.name, data]).toString('hex')
+        if (contract.sourceLanguage === 'solidity') {  // convert to iele function name
+          console.log('* solidity2iele funName: ', `${funAbi.name}(${(funAbi.inputs && funAbi.inputs.length) ? funAbi.inputs.map((input)=>input.type).join(',') : '' })`)
+
+          dataHex = RLP.encode([`${funAbi.name}(${(funAbi.inputs && funAbi.inputs.length) ? funAbi.inputs.map((input)=>input.type).join(',') : '' })`, data]).toString('hex')
+        } else {
+          dataHex = RLP.encode([funAbi.name, data]).toString('hex')
+        }
         console.log('* dataHex: ', dataHex)
       } else {
         dataHex = helper.encodeFunctionId(funAbi) + dataHex
       }
     }
-    callback(null, { dataHex, funAbi, funArgs, contractBytecode, contractName: contractName, isIele })
+    callback(null, { dataHex, funAbi, funArgs, contractBytecode, contractName, contract })
   },
-
-  atAddress: function () {},
 
   linkBytecodeStandard: function (contract, contracts, callback, callbackStep, callbackDeployLibrary) {
     asyncJS.eachOfSeries(contract.evm.bytecode.linkReferences, (libs, file, cbFile) => {

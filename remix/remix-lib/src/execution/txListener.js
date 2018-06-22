@@ -8,8 +8,10 @@ var codeUtil = require('../util')
 var executionContext = require('./execution-context')
 var txFormat = require('./txFormat')
 var txHelper = require('./txHelper')
+const ieleTranslator = require('./ieleTranslator')
 
 const RLP = require('rlp')
+window['RLP'] = RLP
 
 /**
   * poll web3 each 2s if web3
@@ -35,7 +37,7 @@ class TxListener {
       }
     })
 
-    opt.event.udapp.register('callExecuted', (error, from, to, data, lookupOnly, txResult, timestamp, payload, isIele) => {
+    opt.event.udapp.register('callExecuted', (error, from, to, data, lookupOnly, txResult, timestamp, payload, contract) => {
       console.log('@txListener.js callExecuted event')
       console.log('* error: ', error)
       console.log('* from: ', from)
@@ -45,7 +47,7 @@ class TxListener {
       console.log('* txResult: ', txResult)
       console.log('* timestamp: ', timestamp)
       console.log('* payload: ', payload)
-      console.log('* isIele: ', isIele)
+      console.log('* contract: ', contract)
       window['txResult'] = txResult
 
       if (error) return
@@ -58,10 +60,14 @@ class TxListener {
       let returnValue
       if (executionContext.isVM()) {
         returnValue = txResult.result.vm.return
-      } else if (!isIele) {
-        returnValue = ethJSUtil.toBuffer(txResult.result)
-      } else {
+      } else if (contract.vm === 'ielevm') { // iele vm
         returnValue = RLP.decode(txResult.result).map(x=>x.toString('hex'))
+        if (contract.sourceLanguage === 'solidity') { // solidity language
+          returnValue = returnValue.map((val, i)=> ieleTranslator.decode(val, payload.funAbi.outputs[i]))
+        } else { // iele language
+        }
+      } else { // evm
+        returnValue = ethJSUtil.toBuffer(txResult.result)
       }
       const call = {
         from: from,
@@ -304,16 +310,16 @@ class TxListener {
       console.log('txListener: cannot resolve ' + contractName)
       return
     }
-    const isIele = !!(contract.object.ielevm) // @rv: check IELE
+    const isIeleVM = !!(contract.object.vm === 'ielevm')
     const abi = contract.object.abi
     const inputData = tx.input.replace('0x', '')
-    console.log('* isIele: ', isIele)
+    console.log('* isIeleVM: ', isIeleVM)
     console.log('* abi: ', abi)
     console.log('* inputData: ', inputData)
     if (!isCtor) { // TODO: check this for IELE
-      if (isIele) {
+      if (isIeleVM) {
         const decoded = RLP.decode('0x' + inputData)
-        console.log('* !isCtor -> isIele => decoded: ', decoded)
+        console.log('* !isCtor -> isIeleVM => decoded: ', decoded)
         const targetMethodIdentifier = decoded[0].toString()
         const params = decoded[1]
         this._resolvedTransactions[tx.hash] = {
@@ -354,13 +360,13 @@ class TxListener {
         }
       }
     } else {
-      if (isIele) {
+      if (isIeleVM) {
         const bytecode = contract.object.ielevm.bytecode.object 
         this._resolvedTransactions[tx.hash] = {
           contractName,
           to: null,
           fn: '(constructor)',
-          params: contract.object.abi.filter(x=> x.type === 'constructor')[0].inputs
+          params: contract.object.ielevm.abi.filter(x=> x.type === 'constructor')[0].inputs
         }
       } else {
         var bytecode = contract.object.evm.bytecode.object
@@ -387,25 +393,24 @@ class TxListener {
     var found = null
     txHelper.visitContracts(compiledContracts, (contract) => {
       console.log('- contract: ', contract)
-      const isIele = contract.object.ielevm
+      const isIeleVM = contract.object.vm === 'ielevm'
+      console.log('- isIeleVM: ', isIeleVM)
       let bytes 
-      if (isIele) {
+      if (isIeleVM) {
         bytes = contract.object.ielevm.bytecode.object.toLowerCase()
-        try {
-          codeToResolve = '0x' + RLP.decode(codeToResolve)[0].toString('hex').toLowerCase()
-        } catch(error) {
-          return false
-        }
-        console.log('- isIele - bytes: ', bytes)
+        codeToResolve = codeToResolve.toLowerCase()
         console.log('- codeToResolve: ', codeToResolve)
+        console.log('- bytes: ', bytes)
       } else {
         bytes = isCreation ? contract.object.evm.bytecode.object : contract.object.evm.deployedBytecode.object
       }
       if (codeUtil.compareByteCode(codeToResolve, '0x' + bytes)) {
         found = contract.name
+        console.log('* found: ', found)
         return true
       }
     })
+    console.log('* found: ', found)
     return found
   }
 

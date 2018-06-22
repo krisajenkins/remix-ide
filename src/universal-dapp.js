@@ -182,7 +182,7 @@ UniversalDApp.prototype.call = function (isUserAction, args, value, lookupOnly, 
   console.log('* value: ', value)
   console.log('* lookupOnly: ', lookupOnly)
   const self = this
-  const isIele = args.isIele
+  const isIeleVM = executionContext.isIeleVM()
   var logMsg
   if (isUserAction) {
     if (!args.funABI.constant) {
@@ -191,8 +191,12 @@ UniversalDApp.prototype.call = function (isUserAction, args, value, lookupOnly, 
       logMsg = `call to ${args.contractName}.${(args.funABI.name) ? args.funABI.name : '(fallback)'}`
     }
   }
+  const contract = {
+    sourceLanguage: args.sourceLanguage,
+    vm: isIeleVM ? 'ielevm' : 'evm',
+  }
   // TODO: @rv: support IELE
-  txFormat.buildData(args.contractName, args.contractAbi, self.contracts, isIele, false, args.funABI, value, (error, data) => {
+  txFormat.buildData(args.contractName, contract, self.contracts, false, args.funABI, value, (error, data) => {
     if (!error) {
       if (isUserAction) {
         if (!args.funABI.constant) {
@@ -212,12 +216,35 @@ UniversalDApp.prototype.call = function (isUserAction, args, value, lookupOnly, 
             }
           }
           if (lookupOnly) {
-            if (isIele) {
-              // TODO: result dom elemment
+            if (isIeleVM) {
               const returnValue = RLP.decode(txResult.result).map(x=> '0x'+x.toString('hex'))
-              const resultElement = document.createElement('span')
-              resultElement.innerText = returnValue
-              return outputCb(resultElement)
+              console.log('@universal-dapp.js UniversalDApp.prototype.call => returnValue: ', returnValue)
+              if (args.sourceLanguage === 'solidity') { // solidity language
+                // decode results for solidity
+                const ieleTranslator = remixLib.execution.ieleTranslator 
+                const results = returnValue.map((val, i)=> ieleTranslator.decode(val, args.funABI.outputs[i]))
+                const resultElement = document.createElement('ul')
+                results.forEach((result, i)=> {
+                  const liElement = document.createElement('li')
+                  liElement.innerText = `${i}: ${args.funABI.outputs[i].type}: ${args.funABI.outputs[i].name} ${result}`
+                  liElement.style.listStyle = 'none'
+                  liElement.style.marginLeft = '12px'
+                  liElement.style.textAlign = 'left'
+                  resultElement.appendChild(liElement)
+                })
+                return outputCb(resultElement)
+              } else { // iele language
+                const resultElement = document.createElement('ul')
+                returnValue.forEach((result, i)=> {
+                  const liElement = document.createElement('li')
+                  liElement.innerText = result
+                  liElement.style.listStyle = 'none'
+                  liElement.style.marginLeft = '12px'
+                  liElement.style.textAlign = 'left'
+                  resultElement.appendChild(liElement)
+                })
+                return outputCb(resultElement)
+              }
             } else {
               var decoded = uiUtil.decodeResponseToTreeView((executionContext.isVM() ? txResult.result.vm.return : ethJSUtil.toBuffer(txResult.result)), args.funABI)
               return outputCb(decoded)
@@ -241,8 +268,8 @@ UniversalDApp.prototype.call = function (isUserAction, args, value, lookupOnly, 
 /**
   * deploy the given contract
   *
-  * @param {String} data    - data to send with the transaction ( return of txFormat.buildData(...) ).
-  * @param {Function} callback    - callback.
+  * @param {{dataHex: string, funAbi: object, funArgs: string[], contractByteCode: string, contractName: string, contract: object}} data    - data to send with the transaction ( return of txFormat.buildData(...) ).
+  * @param {function} callback    - callback.
   */
 UniversalDApp.prototype.createContract = function (data, callback) {
   this.runTx({data: data, useCall: false}, (error, txResult) => {
@@ -254,10 +281,10 @@ UniversalDApp.prototype.createContract = function (data, callback) {
 /**
   * call the current given contract
   *
-  * @param {String} to    - address of the contract to call.
-  * @param {String} data    - data to send with the transaction ( return of txFormat.buildData(...) ).
-  * @param {Object} funAbi    - abi definition of the function to call.
-  * @param {Function} callback    - callback.
+  * @param {string} to    - address of the contract to call.
+  * @param {{dataHex: string, funAbi: object, funArgs: string[], contractByteCode: string, contractName: string, contract: object}} data    - data to send with the transaction ( return of txFormat.buildData(...) ).
+  * @param {object} funAbi    - abi definition of the function to call.
+  * @param {function} callback    - callback.
   */
 UniversalDApp.prototype.callFunction = function (to, data, funAbi, callback) {
   this.runTx({to: to, data: data, useCall: funAbi.constant}, (error, txResult) => {
@@ -285,6 +312,10 @@ UniversalDApp.prototype.getInputs = function (funABI) {
   return txHelper.inputParametersDeclarationToString(funABI.inputs)
 }
 
+/**
+ * @param {{useCall: boolean, value:string, data: {dataHex:string, funAbi:object, funArgs:string[], contractByteCode: string, contractName: string, contract: object}, to?:string}} args
+ * @param {function} cb
+ */
 UniversalDApp.prototype.runTx = function (args, cb) {
   const self = this
   async.waterfall([
@@ -466,7 +497,7 @@ UniversalDApp.prototype.runTx = function (args, cb) {
         },
         function (error, result) {
           let eventName = (tx.useCall ? 'callExecuted' : 'transactionExecuted')
-          self.event.trigger(eventName, [error, tx.from, tx.to, tx.data, tx.useCall, result, timestamp, payLoad, args.data.isIele])
+          self.event.trigger(eventName, [error, tx.from, tx.to, tx.data, tx.useCall, result, timestamp, payLoad, args.data.contract])
 
           if (error && (typeof (error) !== 'string')) {
             if (error.message) error = error.message

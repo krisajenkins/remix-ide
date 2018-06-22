@@ -77,7 +77,7 @@ function Compiler (handleImportCall) {
     self.event.trigger('compilerLoaded', [version])
   }
 
-  function compileSolidityToIELE(result, source, cb) {
+  async function compileSolidityToIELE(result, source, cb) {
     console.log('@compileSolidityToIELE', result, source)
     const apiGateway = 'https://5c177bzo9e.execute-api.us-east-1.amazonaws.com/prod'
     const params = [source.target, {}]
@@ -85,80 +85,107 @@ function Compiler (handleImportCall) {
     for (const filePath in sources) {
       params[1][filePath] = sources[filePath].content
     }
-    window['fetch'](apiGateway, {
-      method: 'POST',
-      cors: true,
-      body: JSON.stringify({
-        method: 'sol2iele_asm',
-        params: params,
-        jsonrpc: '2.0'
+    try {
+      // get IELE assembly
+      const response1 = await window['fetch'](apiGateway, {
+        method: 'POST',
+        cors: true,
+        body: JSON.stringify({
+          method: 'sol2iele_asm',
+          params: params,
+          jsonrpc: '2.0'
+        })
       })
-    })
-    .then(response=>response.json())
-    .then(json => {
-      if (json['result'] && !json['error']) {
-        let code = json['result']
-        const index = code.indexOf('\n=====')
-        code = code.slice(index, code.length)
-        code = code.replace(/^IELE\s+assembly\s*\:\s*$/mgi, '')
-        const ieleCode = code.replace(/^=====/mg, '// =====')
-        const newTarget = source.target.replace(/\.sol$/, '.iele')
-        const contractNamesMatch = ieleCode.match(/\s*contract\s+(.+?){\s*/ig) // the last contract is the main contract (from Dwight)
-        let contractName = ""
-        if (contractNamesMatch) {
-          contractName = contractNamesMatch[contractNamesMatch.length - 1].trim().split(/\s+/)[1]
-        }
-        const targetContractName = contractName.slice(contractName.lastIndexOf(':')+1, contractName.length).replace(/"$/, '')
-
-        window['fetch'](apiGateway, {
-          method: 'POST',
-          cors: true,
-          body: JSON.stringify({
-            method: 'iele_asm',
-            params: [newTarget, {[newTarget]: ieleCode}],
-            jsonrpc: '2.0'
-          })
-        })
-        .then(response=> response.json())
-        .then(json=> {
-          if (json[error]) { // TODO: better way of display this error message
-            return cb({ error: json['error']['data'].toString() })
-          } else {
-            const r = json['result']
-            const bytecode = isNaN('0x' + r) ? '' : r
-            console.log('- contractName: ', contractName)
-            console.log('- targetContractName: ', targetContractName)
-            const contracts = result.contracts[source.target] || {}
-            for (const name in contracts) {
-              if (name !== targetContractName) {
-                delete(contracts[name])
-              }
-            }
-            contracts[targetContractName]['metadata'] = {
-              vm: 'iele vm'
-            }
-            contracts[targetContractName]['ielevm'] = {
-              bytecode: {
-                object: bytecode
-              },
-              gasEstimate: {
-                codeDepositCost: '0',
-                executionCost: '0',
-                totalCost: '0'
-              }
-            }
-            delete(contracts[targetContractName]['evm'])
-            return cb(result)            
-          }
-        })
-        .catch(
-          (error)=> cb({ error: error.toString() })
-        )
+      const json1 = await response1.json()
+      if (json1['error']) {
+        throw json1['error']['data'].toString()
       }
-    })
-    .catch(
-      (error)=> cb({ error: error.toString() })
-    )
+
+      let code = json1['result']
+      const index = code.indexOf('\n=====')         // TODO: multiple .sol files will produce multiple ====
+      code = code.slice(index, code.length)
+      code = code.replace(/^IELE\s+assembly\s*\:\s*$/mgi, '')
+      const ieleCode = code.replace(/^=====/mg, '// =====')
+      const newTarget = source.target.replace(/\.sol$/, '.iele')
+      const contractNamesMatch = ieleCode.match(/\s*contract\s+(.+?){\s*/ig) // the last contract is the main contract (from Dwight)
+      let contractName = ""
+      if (contractNamesMatch) {
+        contractName = contractNamesMatch[contractNamesMatch.length - 1].trim().split(/\s+/)[1]
+      }
+      const targetContractName = contractName.slice(contractName.lastIndexOf(':')+1, contractName.length).replace(/"$/, '')
+
+      // Get IELE Binary code
+      const response2 = await window['fetch'](apiGateway, {
+        method: 'POST',
+        cors: true,
+        body: JSON.stringify({
+          method: 'iele_asm',
+          params: [newTarget, {[newTarget]: ieleCode}],
+          jsonrpc: '2.0'
+        })
+      })
+      const json2 = await response2.json()
+      if (json2['error']) {
+        throw json2['error']['data'].toString()
+      }
+      const r = json2['result'] // TODO: check r error.
+      const bytecode = isNaN('0x' + r) ? '' : r
+      const ieleAbi = retrieveIELEAbi(ieleCode, contractName)
+      console.log('- contractName: ', contractName)
+      console.log('- targetContractName: ', targetContractName)
+      const contracts = result.contracts[source.target] || {}
+      for (const name in contracts) {
+        if (name !== targetContractName) {
+          delete(contracts[name])
+        }
+      }
+      contracts[targetContractName]['metadata'] = {
+        vm: 'iele vm',
+        ieleAssembly: ieleCode
+      }
+      contracts[targetContractName]['ielevm'] = {
+        bytecode: {
+          object: bytecode
+        },
+        gasEstimate: {
+          codeDepositCost: '0',
+          executionCost: '0',
+          totalCost: '0'
+        },
+        abi: ieleAbi
+      }
+      contracts[targetContractName]['vm'] = 'ielevm'
+      contracts[targetContractName]['sourceLanguage'] = 'solidity'
+      delete(contracts[targetContractName]['evm'])
+
+      // Get Solidity ABI 
+      const response3 = await window['fetch'](apiGateway, {
+        method: 'POST',
+        cors: true,
+        body: JSON.stringify({
+          method: 'sol2iele_abi',
+          params: params,
+          jsonrpc: '2.0'
+        })
+      })
+      const json3 = await response3.json()
+      if (json3['error']) {
+        throw json3['error']['data'].toString()
+      }
+      const r3 = json3['result']
+      const lines = r3.split('\n')
+      let abi = {}
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].indexOf('======= ' + source.target + ':' + targetContractName + ' =======') >= 0) {
+          abi = JSON.parse(lines[i + 2])
+          break
+        }
+      }
+      contracts[targetContractName]['abi'] = abi // override old abi
+      return cb(result)   
+    } catch(error) {
+      return cb({ error: error.toString() })
+    }
   }
 
   function formatIeleErrors(message, target) {
@@ -213,11 +240,12 @@ function Compiler (handleImportCall) {
           contractName = contractNamesMatch[contractNamesMatch.length - 1].trim().split(/\s+/)[1]
         }
         const bytecode = isNaN('0x' + r) ? '' : r
+        const ieleAbi = retrieveIELEAbi(sources[target].content, contractName)
         const result = {
           contracts: {
             [target]: {
               [contractName]: {
-                abi: retrieveIELEAbi(sources[target].content, contractName),
+                abi: ieleAbi,
                 devdoc: {
                   methods: {}
                 },
@@ -232,8 +260,11 @@ function Compiler (handleImportCall) {
                     codeDepositCost: '0',
                     executionCost: '0',
                     totalCost: '0'
-                  }
+                  },
+                  abi: ieleAbi
                 },
+                sourceLanguage: 'iele',
+                vm: 'ielevm',
               }
             }
           },
@@ -307,7 +338,8 @@ function Compiler (handleImportCall) {
         name: functionName,
         inputs: parameters.map((parameter)=> {
           return {
-            name: parameter
+            name: parameter,
+            type: 'arbitrary-width signed integer'
           }
         }),
         type
@@ -337,6 +369,13 @@ function Compiler (handleImportCall) {
           var input = compilerInput(source.sources, {optimize: optimize, target: source.target})
           result = compiler.compileStandardWrapper(input, missingInputsCallback)
           result = JSON.parse(result)
+
+          // @rv: add `sourceLanguage` and `vm` fields
+          const contracts = result.contracts[source.target]
+          for (const contractName in contracts) {
+            contracts[contractName]['vm'] = 'evm'
+            contracts[contractName]['sourceLanguage'] = 'solidity'
+          }
         
           if (compileToIELE) {
             return compileSolidityToIELE(result, source, (result)=> {

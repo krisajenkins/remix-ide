@@ -1,5 +1,6 @@
 'use strict'
 var ethers = require('ethers')
+const ieleTranslator = require('./ieleTranslator')
 
 module.exports = {
   makeFullTupleTypeDefinition: function (typeDef) {
@@ -14,33 +15,44 @@ module.exports = {
    * @rv: Modify encodeParams to support iele.
    * @param {{name: string, inputs: {name: string, type: string}[]}} funABI
    * @param {any[]} args 
-   * @param {boolean} isIele
+   * @param {string} sourceLanguage
+   * @param {string} vm
    * @return {string[]|string} if isIele, returns string[], else returns string
    */
-  encodeParams: function (funABI, args, isIele) {
+  encodeParams: function (funABI, args, sourceLanguage, vm) {
     console.log('@txHelper.js encodeParams')
     console.log('* funABI: ', funABI)
     console.log('* args: ', args)
-    console.log('* isIele: ', isIele)
-    if (isIele) {
-      return args
-    }
-
-    var types = []
-    if (funABI.inputs && funABI.inputs.length) {
-      for (var i = 0; i < funABI.inputs.length; i++) {
-        var type = funABI.inputs[i].type
-        types.push(type === 'tuple' ? this.makeFullTupleTypeDefinition(funABI.inputs[i]) : type)
-        if (args.length < types.length) {
-          args.push('')
+    console.log('* sourceLanguage: ', sourceLanguage)
+    console.log('* vm: ', vm)
+    if (vm === 'ielevm') {
+      if (sourceLanguage === 'iele') {
+        return args.map((x)=> ((x.startsWith('0x') ? '' : '0x') + x))
+      } else { // solidity
+        console.log('- encodedParams for solidity: ', args.map((x, i)=> {
+          return ieleTranslator.encode(x, funABI.inputs[i]) 
+        }))
+        return args.map((x, i)=> {
+          return ieleTranslator.encode(x, funABI.inputs[i]) 
+        })
+      }
+    } else { // evm && solidity
+      var types = []
+      if (funABI.inputs && funABI.inputs.length) {
+        for (var i = 0; i < funABI.inputs.length; i++) {
+          var type = funABI.inputs[i].type
+          types.push(type === 'tuple' ? this.makeFullTupleTypeDefinition(funABI.inputs[i]) : type)
+          if (args.length < types.length) {
+            args.push('')
+          }
         }
       }
+  
+      // NOTE: the caller will concatenate the bytecode and this
+      //       it could be done here too for consistency
+      var abiCoder = new ethers.utils.AbiCoder()
+      return abiCoder.encode(types, args)
     }
-
-    // NOTE: the caller will concatenate the bytecode and this
-    //       it could be done here too for consistency
-    var abiCoder = new ethers.utils.AbiCoder()
-    return abiCoder.encode(types, args)
   },
 
   encodeFunctionId: function (funABI) {

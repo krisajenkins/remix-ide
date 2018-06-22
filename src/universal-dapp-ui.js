@@ -78,8 +78,8 @@ UniversalDAppUI.prototype.renderInstanceFromABI = function (contractABI, address
     }))
   }
 
-  // check if IELE
-  let isIele = !!(contractABI.filter((x)=> x.type === 'constructor' && x.name === 'init').length)
+  // check if the source language is iele
+  let isIeleLanguage = !!(contractABI.filter((x)=> x.type === 'constructor' && x.name === 'init').length)
 
   $.each(contractABI, (i, funABI) => {
     if (funABI.type !== 'function') {
@@ -91,7 +91,8 @@ UniversalDAppUI.prototype.renderInstanceFromABI = function (contractABI, address
       address: address,
       contractAbi: contractABI,
       contractName: contractName,
-      isIele
+      isIeleLanguage,
+      sourceLanguage: isIeleLanguage ? 'iele' : 'solidity'
     }))
   })
 
@@ -102,12 +103,12 @@ UniversalDAppUI.prototype.renderInstanceFromABI = function (contractABI, address
 // this returns a DOM element.
 /**
  * @rv: modify this function to support IELE function
- * @param {{funABI:object, address: string, contractAbi: string, contractName: string, isIele: boolean}} args
+ * @param {{funABI:object, address: string, contractAbi: string, contractName: string, isIeleLanguage: boolean}} args
  */
 UniversalDAppUI.prototype.getCallButton = function (args) {
   console.log('@universal-dapp-ui.js UniversalDAppUI.prototype.getCallButton')
   console.log('* args: ', args)
-  const isIele = args.isIele
+  const isIeleLanguage = args.isIeleLanguage
   const self = this
   // args.funABI, args.address [fun only]
   // args.contractName [constr only]
@@ -116,8 +117,8 @@ UniversalDAppUI.prototype.getCallButton = function (args) {
   
     function clickButton (valArr, inputsValues) {
       const newArgs = Object.assign({}, args)
-      // @rv: attach `constant` to funABI if isIele and lookupOnly
-      if (isIele) {
+      // @rv: attach `constant` to funABI if isIeleLanguage and lookupOnly
+      if (isIeleLanguage) {
         const newFunABI = Object.assign({}, args.funABI)
         newFunABI.constant = lookupOnly
         newArgs.funABI = newFunABI
@@ -130,7 +131,7 @@ UniversalDAppUI.prototype.getCallButton = function (args) {
   
     const multiParamManager = new MultiParamManager(lookupOnly, args.funABI, (valArray, inputsValues, domEl) => {
       clickButton(valArray, inputsValues, domEl)
-    }, self.udapp.getInputs(args.funABI), '', '', isIele)
+    }, self.udapp.getInputs(args.funABI), '')
   
     const contractActionsContainer = yo`<div class="${css.contractActionsContainer}" >${multiParamManager.render()}</div>`
     contractActionsContainer.appendChild(outputOverride)
@@ -138,7 +139,7 @@ UniversalDAppUI.prototype.getCallButton = function (args) {
     return contractActionsContainer 
   }
 
-  if (isIele) { // @rv: display both `call` and `transact` for function.
+  if (isIeleLanguage) { // @rv: display both `call` and `transact` for function.
     return yo`<div>
     ${helper(true)}
     ${helper(false)}

@@ -52,7 +52,9 @@ function runTab (appAPI = {}, appEvents = {}, opts = {}) {
     </div>`
 
   var container = yo`<div class="${css.runTabView}" id="runTabView" ></div>`
-  var recorderInterface = makeRecorder(appAPI, appEvents, opts, self)
+
+  // TODO: @rv: recorderInterface is temporarily disabled
+  // var recorderInterface = makeRecorder(appAPI, appEvents, opts, self) // @rv: disabled temporarily
 
   self._view.collapsedView = yo`
     <div class=${css.recorderCollapsedView}>
@@ -64,13 +66,17 @@ function runTab (appAPI = {}, appEvents = {}, opts = {}) {
       <div class=${css.recorderDescription}>
         ${self.data.text}
       </div>
+      ${/*
       <div class="${css.transactionActions}">
         ${recorderInterface.recordButton}
         ${recorderInterface.runButton}
         </div>
       </div>
+        */''}
     </div>`
-
+    
+  /*
+  // @rv: disable recorder
   self.recorderOpts = {
     title: 'Transactions recorded:',
     collapsedView: self._view.collapsedView
@@ -87,6 +93,8 @@ function runTab (appAPI = {}, appEvents = {}, opts = {}) {
       status.appendChild(self._view.collapsedView)
     }
   })
+  */
+
     /* -------------------------
          MAIN HTML ELEMENT
     --------------------------- */
@@ -94,7 +102,7 @@ function runTab (appAPI = {}, appEvents = {}, opts = {}) {
   <div>
     ${settings(container, appAPI, appEvents, opts)}
     ${contractDropdown(event, appAPI, appEvents, opts, self)}
-    ${recorderCard.render()}
+    ${''/*recorderCard.render() // @rv: disabled recorder */} 
     ${self._view.instanceContainer}
   </div>
   `
@@ -201,6 +209,8 @@ function updateAccountBalances (container, appAPI) {
 /* ------------------------------------------------
            RECORDER
 ------------------------------------------------ */
+/*
+TODO: @rv: this function is temporarily disabled
 function makeRecorder (appAPI, appEvents, opts, self) {
   var recorder = new Recorder(opts.compiler, opts.udapp, {
     events: {
@@ -251,11 +261,11 @@ function makeRecorder (appAPI, appEvents, opts, self) {
   }
 
   runButton.onclick = () => {
-    /*
-    @TODO
-    update account address in scenario.json
-    popup if scenario.json not open - "Open a file with transactions you want to replay and click play again"
-    */
+    //
+    //@TODO
+    //update account address in scenario.json
+    //popup if scenario.json not open - "Open a file with transactions you want to replay and click play again"
+    //
     var currentFile = opts.config.get('currentFile')
     appAPI.fileProviderOf(currentFile).get(currentFile, (error, json) => {
       if (error) {
@@ -287,7 +297,8 @@ function makeRecorder (appAPI, appEvents, opts, self) {
   }
 
   return { recordButton, runButton }
-}
+}*/
+
 /* ------------------------------------------------
     CONTRACT (deploy or access deployed)
 ------------------------------------------------ */
@@ -348,22 +359,17 @@ function contractDropdown (events, appAPI, appEvents, opts, self) {
     if (opts.compiler.getContract && selectContractNames.selectedIndex >= 0 && selectContractNames.children.length > 0) {
       // @rv: support iele bytecode 
       const contract = getSelectedContract().contract
-      if (contract.object.evm) { // evm
-        var ctrabi = txHelper.getConstructorInterface(contract.object.abi)
-        var ctrEVMbc = contract.object.evm.bytecode.object
-        var createConstructorInstance = new MultiParamManager(0, ctrabi, (valArray, inputsValues) => {
-          createInstance(inputsValues)
-        }, txHelper.inputParametersDeclarationToString(ctrabi.inputs), 'Deploy (EVM)', ctrEVMbc)
-        createPanel.appendChild(createConstructorInstance.render())
-        return
-      } else { // iele vm
-        const ctrabi = txHelper.getConstructorInterfaceForIELE(contract.object.abi) // TODO: <= support getIELEConstructorInterface
-        const ctrIELEVMbc = contract.object.ielevm.bytecode.object
-        const createConstructorInstance = new MultiParamManager(0, ctrabi, (valArray, inputsValues)=> {
-          createInstance(inputsValues, true) // TODO: <= support createIELEInstance
-        }, txHelper.inputParametersDeclarationToString(ctrabi.inputs), 'Deploy (IELE)', ctrIELEVMbc, true)
-        createPanel.appendChild(createConstructorInstance.render())
+      let ctrabi, vmbc;
+      if (contract.object.sourceLanguage === 'solidity') { // solidity language
+        ctrabi = txHelper.getConstructorInterface(contract.object.abi)
+      } else { // iele language
+        ctrabi = txHelper.getConstructorInterfaceForIELE(contract.object.abi) // TODO: <= support getIELEConstructorInterface
       }
+
+      var createConstructorInstance = new MultiParamManager(0, ctrabi, (valArray, inputsValues) => {
+        createInstance(inputsValues)
+      }, txHelper.inputParametersDeclarationToString(ctrabi.inputs), `Deploy (${contract.object.vm.toUpperCase()})`)
+      createPanel.appendChild(createConstructorInstance.render())
     } else {
       createPanel.innerHTML = 'No compiled contracts'
     }
@@ -375,12 +381,12 @@ function contractDropdown (events, appAPI, appEvents, opts, self) {
   /**
    * @rv
    * @param {} args 
-   * @param {boolean} isIele whether this is iele contract or not 
+   * @param {{sourceLanguage: string, vm: string, ielevm?:object, evm?:object, abi: object}} contract contract object 
    */
-  function createInstance (args, isIele) {
+  function createInstance (args) {
     const selectedContract = getSelectedContract()
 
-    if (isIele) {
+    if (selectedContract.contract.object.vm === 'ielevm') {
       if (selectedContract.contract.object.ielevm.bytecode.object.length === 0) {
         modalDialogCustom.alert('This contract does not implement all functions and thus cannot be created.')
         return
@@ -393,13 +399,13 @@ function contractDropdown (events, appAPI, appEvents, opts, self) {
     }
 
     let constructor
-    if (isIele) {
+    if (selectedContract.contract.object.sourceLanguage === 'iele') {
       constructor = txHelper.getConstructorInterfaceForIELE(selectedContract.contract.object.abi)
     } else {
       constructor = txHelper.getConstructorInterface(selectedContract.contract.object.abi)
     }
 
-    txFormat.buildData(selectedContract.name, selectedContract.contract.object, opts.compiler.getContracts(), isIele, true, constructor, args, (error, data) => {
+    txFormat.buildData(selectedContract.name, selectedContract.contract.object, opts.compiler.getContracts(), true, constructor, args, (error, data) => {
       if (!error) {
         appAPI.logMessage(`creation of ${selectedContract.name} pending...`)
         opts.udapp.createContract(data, (error, txResult) => {
@@ -447,6 +453,7 @@ function contractDropdown (events, appAPI, appEvents, opts, self) {
     if (/[a-f]/.test(address) && /[A-F]/.test(address) && !ethJSUtil.isValidChecksumAddress(address)) {
       return modalDialogCustom.alert('Invalid checksum address.')
     }
+    // TODO: load contract according to ABI is temporarily disabled
     if (/.(.abi)$/.exec(config.get('currentFile'))) {
       modalDialogCustom.confirm(null, 'Do you really want to interact with ' + address + ' using the current ABI definition ?', () => {
         var abi

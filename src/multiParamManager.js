@@ -15,20 +15,17 @@ class MultiParamManager {
     * @param {function} clickCallBack
     * @param {string} inputs
     * @param {string} title
-    * @param {string} evmBC
-    * @param {boolean} isIele @rv, whether it is using IELE vm or not
+    * @param {{sourceLanguage: string, vm: string, abi: object, ielevm?: object, evm?: object}} contractObject - @rv: the contract object
     *
     */
-  constructor (lookupOnly, funABI, clickCallBack, inputs, title, evmBC, isIele) {
+  constructor (lookupOnly, funABI, clickCallBack, inputs, title) {
     this.lookupOnly = lookupOnly
     this.funABI = funABI
     this.clickCallBack = clickCallBack
     this.inputs = inputs
     this.title = title
-    this.evmBC = evmBC
     this.basicInputField
     this.multiFields
-    this.isIele = isIele
   }
 
   switchMethodViewOn () {
@@ -99,23 +96,12 @@ class MultiParamManager {
   }
 
   createMultiFields () {
-    // @rv: support IELE inputs (parameters)
-    if (this.isIele) {
-      if (this.funABI.inputs) {
-        return yo`<div>
+    if (this.funABI.inputs) {
+      return yo`<div>
         ${this.funABI.inputs.map(function (inp) {
-          return yo`<div class="${css.multiArg}"><label for="${inp.name}"> ${inp.name}: </label><input placeholder="arbitrary-width signed integer" id="${inp.name}" title="${inp.name}"></div>`
+          return yo`<div class="${css.multiArg}"><label for="${inp.name}"> ${inp.name}: </label><input placeholder="${inp.type}" id="${inp.name}" title="${inp.name}"></div>`
         })}
       </div>`
-      }
-    } else {
-      if (this.funABI.inputs) {
-        return yo`<div>
-          ${this.funABI.inputs.map(function (inp) {
-            return yo`<div class="${css.multiArg}"><label for="${inp.name}"> ${inp.name}: </label><input placeholder="${inp.type}" id="${inp.name}" title="${inp.name}"></div>`
-          })}
-        </div>`
-      }
     }
   }
 
@@ -166,7 +152,10 @@ class MultiParamManager {
         ${this.multiFields}
         <div class="${css.group} ${css.multiArg}" >
           ${button}
-          ${copyToClipboard(
+          ${
+          // @rv: disable clipboard for now
+          /*
+            copyToClipboard(
             () => {
               var multiString = this.getMultiValsString()
               var multiJSON = JSON.parse('[' + multiString + ']')
@@ -181,17 +170,14 @@ class MultiParamManager {
               } else {
                 return encodeObj.data
               }
-            }, 'Encode values of input fields & copy to clipboard', 'fa-briefcase')}
+            }, 'Encode values of input fields & copy to clipboard', 'fa-briefcase')
+          */''
+          }
         </div>
       </div>
     </div>`
 
     var contractProperty = yo`<div class="${css.contractProperty}">${this.contractActionsContainerSingle} ${this.contractActionsContainerMulti}</div>`
-
-    //if (this.isIele) {
-    //  contractProperty.classList.add(css.iele)
-    //}
-
     if (this.lookupOnly) {
       contractProperty.classList.add(css.constant)
       button.setAttribute('title', (title + ' - call'))
