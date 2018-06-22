@@ -630,9 +630,9 @@ UniversalDApp.prototype.importAccount = function(cb) {
 
 /**
  * @rv: Add custom RPC information to local storage
- * @param {{rpcUrl:string, chainId:number}} param0 
+ * @param {{rpcUrl:string, chainId:number, vm:string}} param0 
  */
-UniversalDApp.prototype.addCustomRPC = function({rpcUrl, chainId}) {
+UniversalDApp.prototype.addCustomRPC = function({rpcUrl, chainId, vm}) {
   rpcUrl = rpcUrl.trim()
   let name = `${rpcUrl} (chainId: ${chainId})`
   let context = `custom-rpc-${name}`
@@ -644,7 +644,8 @@ UniversalDApp.prototype.addCustomRPC = function({rpcUrl, chainId}) {
     rpcUrl,
     chainId,
     name,
-    context
+    context,
+    vm
   }
   const customRPCs = this._api.config.get('custom-rpc-list') || []
   let find = false 
@@ -659,20 +660,19 @@ UniversalDApp.prototype.addCustomRPC = function({rpcUrl, chainId}) {
     customRPCs.push(customRPC)
   }
   this._api.config.set('custom-rpc-list', customRPCs)
-  window['UniversalDAppConfig'] = this._api.config
   return customRPC
 }
 
 /**
  * @rv: Connect user to Custom RPC
- * @param {(error:string, customRPC:object)=> void} cb 
+ * @param {(error:string, customRPC:object, vm:string)=> void} cb 
  */
 UniversalDApp.prototype.connectToCustomRPC = function(cb) {
-  modalCustom.connectToCustomRPC((error, {rpcUrl, chainId})=> {
+  modalCustom.connectToCustomRPC((error, {rpcUrl, chainId, vm})=> {
     if (error) {
       return cb(error)
     } else {
-      const customRPC = this.addCustomRPC({rpcUrl, chainId})
+      const customRPC = this.addCustomRPC({rpcUrl, chainId, vm})
       return cb(null, customRPC)
     }
   })

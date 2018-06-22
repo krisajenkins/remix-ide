@@ -71,7 +71,7 @@ TxRunner.prototype._sendTransaction = function (sendTx, tx, pass, chainId, priva
       console.log('* gasPrice: ', parseInt(tx.gasPrice))
       console.log('* value: ', tx.value)
       console.log('* chainId: ', chainId)
-      console.log('* p: ', privateKey.toString('hex'))
+      // console.log('* p: ', privateKey.toString('hex'))
       const newTx = {
         nonce: new BN(nonce),
         gasPrice: new BN(parseInt(tx.gasPrice) || 5000000000), // default: 5 gwei

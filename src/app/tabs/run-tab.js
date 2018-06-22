@@ -74,7 +74,7 @@ function runTab (appAPI = {}, appEvents = {}, opts = {}) {
       </div>
         */''}
     </div>`
-    
+
   /*
   // @rv: disable recorder
   self.recorderOpts = {
@@ -710,6 +710,9 @@ function settings (container, appAPI, appEvents, opts) {
     
     opts.config.set('custom-rpc-list', newCustomRPCList) // update `custom-rpc-list`
 
+    const newContext = newCustomRPCList.length ? newCustomRPCList[0].context : 'vm' // change selected environment
+    $environmentSelect[0].value = newContext
+
     const $options = $('option', $environmentSelect) // remove from gui
     for (let i = 0; i < $options.length; i++) {
       if ($options[i].getAttribute('value') === context) {
@@ -717,9 +720,6 @@ function settings (container, appAPI, appEvents, opts) {
         break
       }
     }
-
-    const newContext = newCustomRPCList.length ? newCustomRPCList[0] : 'vm' // change selected environment
-    $environmentSelect[0].value = newContext
     $environmentSelect[0].dispatchEvent(new Event('change'))
   }
 

@@ -87,6 +87,7 @@ function ExecutionContext () {
   this.blockGasLimit = this.blockGasLimitDefault
 
   this.init = function (config) {
+    this.config = config // @rv: save config to this object scope
     if (config.get('settings/always-use-vm')) {
       executionContext = 'vm'
     } else {
@@ -125,10 +126,13 @@ function ExecutionContext () {
   }
 
   this.isIeleVM = function() { // TODO: @rv: use new endpoint to check if the node is using iele vm
-    if (executionContext.match(/localhost/)) { //TODO: @rv: change this line
-      return true
+    const customRPCList = this.config.get('custom-rpc-list') || []
+    const customRPC = customRPCList.filter((x)=> x.context === executionContext)[0]
+    if (customRPC) {
+      return customRPC.vm === 'ielevm'
+    } else {
+      return false
     }
-    return false
   }
 
   this.detectNetwork = function (callback) {
