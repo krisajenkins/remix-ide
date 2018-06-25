@@ -27,7 +27,7 @@ module.exports = {
     console.log('* vm: ', vm)
     if (vm === 'ielevm') {
       if (sourceLanguage === 'iele') {
-        return args.map((x)=> ((x.startsWith('0x') ? '' : '0x') + x))
+        return args.map((x)=> ieleTranslator.encode(x, {type: 'int'}))
       } else { // solidity
         console.log('- encodedParams for solidity: ', args.map((x, i)=> {
           return ieleTranslator.encode(x, funABI.inputs[i]) 

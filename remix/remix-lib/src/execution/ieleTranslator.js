@@ -28,6 +28,26 @@ function hex2a(hexx) {
 }
 
 /**
+ * Convert hex string to int (including negative number)
+ * @param {string} hex 
+ */
+function hexToInt(hex) {
+  hex = hex.replace(/^0x(00)*/, '')
+  if (!hex.length) {
+    hex = '00'
+  }
+  if (hex.length % 2 != 0) {
+      hex = "0" + hex;
+  }
+  var num = parseInt(hex, 16);
+  var maxVal = Math.pow(2, hex.length / 2 * 8);
+  if (num > maxVal / 2 - 1) {
+      num = num - maxVal
+  }
+  return num;
+}
+
+/**
  * Encode a (Solidity) value to IELE value
  * @param {string | string[]} value 
  * @param {{type:string, components?:object[]}} type
@@ -40,16 +60,10 @@ function encode(value, type) {
   const t = type.type;
   if (t.match(/\[/)) {
     const type = t.slice(0, t.indexOf('['))
-    if (type.match(/^uint/)) {
+    if (type.match(/^u?int/)) {
       let returnValue = ''
       value.forEach((val)=> {
         let encoded = encode(val, {type}).replace(/^0x/, '')
-        if (encoded.length % 2 !== 0) {
-          encoded = '0' + encoded
-        }
-        if (parseInt('0x' + encoded.slice(0, 2)) >= 8) { // negative number
-          encoded = '00' + encoded
-        }
         const bytesSize = encoded.length / 2
         let littleEndianStr = bytesSize.toString(16)
         while (littleEndianStr.length !== 16) {
@@ -60,7 +74,7 @@ function encode(value, type) {
       return '0x' + returnValue
     } else if ( type === 'bool' || 
                 type.match(/^bytes\d+$/)) {
-      const bytesSize = (type === 'bool') ? 1 : parseInt(type.match(/^bytes(\d+)$/)[1])
+      const bytesSize = (type === 'bool') ? 1 : parseInt(type.match(/^bytes(\d+)$/)[1], 10)
       let returnValue = ''
       value.forEach((val)=> {
         let encoded = encode(val, {type}).replace(/^0x/, '')
@@ -90,12 +104,46 @@ function encode(value, type) {
     }
   } else if (t === 'address') {
     return (value.startsWidth('0x') ? '' : '0x') + value
-  } else if (t.startsWith('uint') || t.startsWith('int')) {
-    const i = parseInt(value)
-    return '0x' + i.toString(16)
+  } else if (t.match(/^uint/)) {
+    const num = parseInt(value)
+    if (num < 0) {
+      throw (`IeleTranslator error: Invalid value ${value} with type ${JSON.stringify(type)}.` )
+    }
+    let encoded = num.toString(16)
+    if (encoded.length % 2 !== 0) {
+      encoded = '0' + encoded
+    }
+    if (parseInt('0x' + encoded.slice(0, 1), 16) >= 8) { // negative number
+      encoded = '00' + encoded
+    }
+    return '0x' + encoded
+  } else if (t.match(/^int/)) {
+    const num = parseInt(value)
+    let encoded
+    if (num < 0) { // 2's complement
+      encoded = (~(-num) + 1 >>> 0).toString(16)
+      while ( encoded.startsWith('ff') && 
+              encoded.length >= 3 && 
+              parseInt(encoded[2], 16) >= 8) {
+        encoded = encoded.replace(/^ff/, '') // remove leading 'ff's. 
+      }
+    } else {
+      encoded = num.toString(16)
+    }
+    if (encoded.length % 2 !== 0) {
+      encoded = '0' + encoded
+    }
+    return '0x' + encoded
   } else if (t.match(/^(byte|bytes\d+)$/)) { // Fixed-size byte array
-    const i = parseInt(value)
-    return '0x' + i.toString(16)
+    const bytesSize = (t === 'byte') ? 1 : parseInt(t.match(/^bytes(\d+)$/)[1], 10)
+    let encoded = parseInt(value).toString(16)
+    if (encoded.length % 2 !== 0) {
+      encoded = '0' + encoded
+    }
+    while (encoded.length < bytesSize * 2) {
+      encoded = '0' + encoded
+    }
+    return '0x' + encoded
   } else if (t.match(/^(string|bytes)$/)) {
     //if (value[0] !== '"' || value[value.length - 1] !== '"') {
     //  throw (`String value has to be within double quotes`)
@@ -137,7 +185,7 @@ function decode(value, type) {
         if (i <= 0) {
           break
         }
-        const bytesSize = parseInt('0x' + value.slice(i, value.length))
+        const bytesSize = parseInt('0x' + value.slice(i, value.length), 16)
         const v = '0x' + value.slice(i - bytesSize * 2, i)
         arr.push(decode(v, {type}))
         value = value.slice(0, i - bytesSize * 2)
@@ -146,7 +194,7 @@ function decode(value, type) {
     } else if (type === 'bool' || 
                type.match(/^bytes\d+$/)) {
       const arr = []
-      const bytesSize = (type === 'bool') ? 1 : parseInt(type.match(/^bytes(\d+)$/)[1])
+      const bytesSize = (type === 'bool') ? 1 : parseInt(type.match(/^bytes(\d+)$/)[1], 10)
       value = value.replace(/^0x/, '')
       while (value.length) {
         const v = '0x' + value.slice(value.length - 2 * bytesSize, value.length)
@@ -175,13 +223,23 @@ function decode(value, type) {
   } else if (t === 'address') {
     const temp = value.replace(/^0x/, '')
     return ('0x' + temp.slice(temp.length - 40, temp.length))
-  } else if (t.startsWith('uint') || t.startsWith('int')) {
+  } else if (t.match(/^uint/)) {
     return parseInt(value).toString()
+  } else if (t.match(/^int/)) {
+    return hexToInt(value).toString()
   } else if (t.match(/^(byte|bytes\d+)$/)) { // Fixed-size byte array
-    return value
+    const bytesSize = (t === 'byte') ? 1 : parseInt(t.match(/^bytes(\d+)$/)[1], 10)
+    let encoded = value.replace(/^0x/, '')
+    if (encoded.length % 2 !== 0) {
+      encoded = '0' + encoded
+    }
+    while (encoded.length < bytesSize * 2) {
+      encoded = '0' + encoded
+    }
+    return '0x' + encoded
   } else if (t.match(/^(string|bytes)$/)) {
     const i = value.length - 16
-    const length = parseInt(value.slice(i))
+    const length = parseInt(value.slice(i), 16)
     const text = hex2a(value.slice(2, i))
     return text
   } else {
@@ -195,6 +253,11 @@ function toIeleFunctionName(solFuncAbi) {
     type = type.replace(/(u?int)\d+/, '$1')
     return type
   }).join(',') : '' })`
+}
+
+window['ieleTranslator'] = {
+  encode,
+  decode
 }
 
 module.exports.encode = encode
