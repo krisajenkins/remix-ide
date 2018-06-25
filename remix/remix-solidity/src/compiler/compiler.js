@@ -139,6 +139,10 @@ function Compiler (handleImportCall) {
           delete(contracts[name])
         }
       }
+      const contract = contracts[targetContractName]
+      if (!contract) { // this means here is some error.
+        return cb(result)
+      }
       contracts[targetContractName]['metadata'] = {
         vm: 'iele vm',
         ieleAssembly: ieleCode

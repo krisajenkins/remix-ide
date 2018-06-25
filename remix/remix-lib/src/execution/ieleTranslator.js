@@ -156,6 +156,18 @@ function encode(value, type) {
       littleEndianStr = '0' + littleEndianStr
     }
     return '0x' + a2hex(text) + littleEndianStr
+  } else if (t === 'tuple') {
+    const components = type.components
+    let result = ''
+    components.forEach((component, offset)=> {
+      let val = value[offset]
+      if (component['type'].match(/^u?int/)) {
+        component = Object.assign({}, component, {type: component['type'] + '[]'} ) // hack for uint/int type  
+        val = [val]
+      }
+      result = encode(val, component).replace(/^0x/, '')  + result 
+    })
+    return '0x' + result
   } else {
     throw (`IeleTranslator Encode error: Invalid value ${value} with type ${JSON.stringify(type)}.`)
   }
@@ -242,17 +254,19 @@ function decode(value, type) {
     const length = parseInt(value.slice(i), 16)
     const text = hex2a(value.slice(2, i))
     return text
-  } else {
+  }/* else if (t === 'tuple') {
+    const components = type.components
+    const arr = []
+    let rest = value
+    components.forEach((component, i)=> {
+      const t = decode(rest, component)
+      rest = t.rest
+      arr.push(t.result)
+    })
+    return arr.join(', ')
+  } */ else {
     throw (`IeleTranslator Decode error: Invalid value ${value} with type ${JSON.stringify(type)}.`)
   }
-}
-
-function toIeleFunctionName(solFuncAbi) {
-  return `${solFuncAbi.name}(${(solFuncAbi.inputs && solFuncAbi.inputs.length) ? solFuncAbi.inputs.map((input)=>{
-    let type = input.type
-    type = type.replace(/(u?int)\d+/, '$1')
-    return type
-  }).join(',') : '' })`
 }
 
 window['ieleTranslator'] = {
