@@ -221,6 +221,7 @@ function run () {
 Please only use it if you know what you are doing, otherwise visit the stable version at http://remix.ethereum.org.`)
   } else if (window.location.protocol.indexOf('http') === 0 &&
   window.location.hostname !== 'remix.ethereum.org' &&
+  window.location.hostname !== 'remix-staging-iele.kevm-private.mantis.iohkdev.io' &&
   window.location.hostname !== 'localhost' &&
   window.location.hostname !== '127.0.0.1') {
     modalDialogCustom.alert(`The Remix IDE has moved to http://remix.ethereum.org.\n
