@@ -162,7 +162,7 @@ function encode(value, type) {
     components.forEach((component, offset)=> {
       let val = value[offset]
       if (component['type'].match(/^u?int/)) {
-        component = Object.assign({}, component, {type: component['type'] + '[]'} ) // hack for uint/int type  
+        component = Object.assign({}, component, {type: component['type'] + '[1]'} ) // hack for uint/int type  
         val = [val]
       }
       result = encode(val, component).replace(/^0x/, '')  + result 
@@ -177,94 +177,143 @@ function encode(value, type) {
  * Decode an IELE value to (Solidity) value
  * @param {string} value encoded IELE hex string
  * @param {{type: string, components?:object[]}} type
- * @return {string} return string value
+ * @return {{result: any, stringResult: string, rest: string}} 
  */
 function decode(value, type) {
   if (typeof(value) !== 'string') {
     throw ('IeleTranslator error: Please pass `string` value to **decode** function.')
   }
-  if (!value.startsWith('0x')) {
-    value = '0x' + value
-  }
+  value = value.replace(/^0x/, '') // remove leading 0x
 
   const t = type.type
   if (t.match(/\[/)) {
-    const type = t.slice(0, t.indexOf('['))
-    if (type.match(/^u?int/)) {
-      const arr = []
-      while (true) {
-        let i = value.length - 16;
-        if (i <= 0) {
-          break
-        }
-        const bytesSize = parseInt('0x' + value.slice(i, value.length), 16)
-        const v = '0x' + value.slice(i - bytesSize * 2, i)
-        arr.push(decode(v, {type}))
-        value = value.slice(0, i - bytesSize * 2)
+    let otype = null;
+    let arraySize = 0;
+    if (t.match(/\[\s*\]/)) { // dynamic array
+      otype = t.slice(0, t.lastIndexOf('['))
+      if (t.match(/\[(\d+)\]$/)) { // eg: uint[][2]
+        arraySize = parseInt(t.match(/\[(\d+)\]$/)[1], 10)
+      } else {                     // eg: uint[2][]
+        const arraySizeBytes = parseInt(value.slice(value.length - 2, value.length), 16)
+        arraySize = parseInt(value.slice(value.length - 2 - arraySizeBytes * 2, value.length - 2), 16)
+        value = value.slice(0, value.length - 2 - arraySizeBytes * 2)
       }
-      return arr.join(', ')
-    } else if (type === 'bool' || 
-               type.match(/^bytes\d+$/)) {
-      const arr = []
-      const bytesSize = (type === 'bool') ? 1 : parseInt(type.match(/^bytes(\d+)$/)[1], 10)
-      value = value.replace(/^0x/, '')
-      while (value.length) {
-        const v = '0x' + value.slice(value.length - 2 * bytesSize, value.length)
-        arr.push(decode(v, {type}))
-        value = value.slice(0, value.length - 2 * bytesSize)
+    } else { // fixed size array
+      otype = t.slice(0, t.indexOf('['))
+      arraySize = t.match(/\[(\d+)\]/g)
+                          .map(x => parseInt(x.replace(/[\[\]]/g, '')))
+                          .reduce((x, y)=> x * y)
+    }
+    if (otype.match(/^u?int(\d*)$/)) {
+      const resultArr = []
+      const stringResultArr = []
+      let rest = value
+      for (let i = 0; i < arraySize; i++) {
+        const j = rest.length - 16
+        const bytesSize = parseInt(rest.slice(j, rest.length), 16)
+        const v = rest.slice(j - bytesSize * 2, j)
+        const t = decode(v, {type: otype})
+        rest = rest.slice(0, j - bytesSize * 2)
+        resultArr.push(t.result)
+        stringResultArr.push(t.stringResult)
       }
-      return arr.join(', ')
-    } else if (type.match(/^(bytes|string)$/)) {
-      const arr = []
-      while (true) {
-        let i = value.length - 16;
-        if (i <= 0) {
-          break
-        }
-        const length = parseInt('0x' + value.slice(i, value.length))
-        const v = '0x' + value.slice(i - length * 2, value.length)
-        arr.push(decode(v, {type}))
-        value = value.slice(0, i - bytesSize * 2)
+      return {
+        rest, 
+        result: resultArr,
+        stringResult: '[' + stringResultArr.join(', ') + ']'
       }
-      return arr.join(', ')
     } else {
-      throw (`IeleTranslator Decode error: Invalid value ${value} with type ${JSON.stringify(type)}.`)
+      const resultArr = []
+      const stringResultArr = []
+      let rest = value 
+      for (let i = 0; i < arraySize; i++) {
+        const t = decode(rest, {type: otype, components: type.components})
+        rest = t.rest
+        resultArr.push(t.result)
+        stringResultArr.push(t.stringResult)
+      }
+      return {
+        rest, 
+        result: resultArr,
+        stringResult: '[' + stringResultArr.join(', ') + ']'
+      }
     }
   } else if (t === 'bool') {
-    return (!!parseInt(value)).toString()
+    const result = (!!parseInt(value.slice(value.length - 2, value.length)))
+    const stringResult = result.toString()
+    const rest = value.slice(0, value.length - 2);
+    return {
+      result, 
+      stringResult,
+      rest
+    }
   } else if (t === 'address') {
-    const temp = value.replace(/^0x/, '')
-    return ('0x' + temp.slice(temp.length - 40, temp.length))
+    const result = '0x' + value.slice(value.length - 40, value.length)
+    const stringResult = result
+    const rest = value.slice(0, value.length - 40)
+    return {
+      result,
+      stringResult,
+      rest
+    }
   } else if (t.match(/^uint/)) {
-    return parseInt(value).toString()
+    const result = parseInt(value, 16)
+    const stringResult = result.toString()
+    return {
+      result,
+      stringResult,
+      rest: ''
+    }
   } else if (t.match(/^int/)) {
-    return hexToInt(value).toString()
+    const result = hexToInt(value)
+    const stringResult = result.toString()
+    return {
+      result,
+      stringResult,
+      rest: ''
+    }
   } else if (t.match(/^(byte|bytes\d+)$/)) { // Fixed-size byte array
     const bytesSize = (t === 'byte') ? 1 : parseInt(t.match(/^bytes(\d+)$/)[1], 10)
-    let encoded = value.replace(/^0x/, '')
-    if (encoded.length % 2 !== 0) {
-      encoded = '0' + encoded
+    let result = value.slice(value.length - bytesSize * 2, value.length)
+    while (result.length !== bytesSize * 2) {
+      result = '0' + result
     }
-    while (encoded.length < bytesSize * 2) {
-      encoded = '0' + encoded
+    result = '0x' + result
+    const stringResult = result
+    const rest = value.slice(0, value.length - bytesSize * 2)
+    return {
+      result,
+      stringResult,
+      rest
     }
-    return '0x' + encoded
   } else if (t.match(/^(string|bytes)$/)) {
     const i = value.length - 16
-    const length = parseInt(value.slice(i), 16)
-    const text = hex2a(value.slice(2, i))
-    return text
-  }/* else if (t === 'tuple') {
+    const bytesSize = parseInt(value.slice(i, value.length), 16)
+    const result = hex2a(value.slice(i - bytesSize * 2, i))
+    const stringResult = '"' + result + '"' 
+    const rest = value.slice(0, i - bytesSize * 2)
+    return {
+      result,
+      stringResult,
+      rest
+    }
+  } else if (t === 'tuple') {
     const components = type.components
-    const arr = []
+    const resultArr = []
+    const stringResultArr = []
     let rest = value
     components.forEach((component, i)=> {
       const t = decode(rest, component)
       rest = t.rest
-      arr.push(t.result)
+      resultArr.push(t.result)
+      stringResultArr.push(t.stringResult)
     })
-    return arr.join(', ')
-  } */ else {
+    return {
+      rest,
+      result: resultArr,
+      stringResult: '[' + stringResultArr.join(', ') + ']'
+    }
+  } else {
     throw (`IeleTranslator Decode error: Invalid value ${value} with type ${JSON.stringify(type)}.`)
   }
 }

@@ -222,7 +222,7 @@ UniversalDApp.prototype.call = function (isUserAction, args, value, lookupOnly, 
               if (args.sourceLanguage === 'solidity') { // solidity language
                 // decode results for solidity
                 const ieleTranslator = remixLib.execution.ieleTranslator 
-                const results = returnValue.map((val, i)=> ieleTranslator.decode(val, args.funABI.outputs[i]))
+                const results = returnValue.map((val, i)=> ieleTranslator.decode(val, args.funABI.outputs[i]).stringResult )
                 const resultElement = document.createElement('ul')
                 results.forEach((result, i)=> {
                   const liElement = document.createElement('li')

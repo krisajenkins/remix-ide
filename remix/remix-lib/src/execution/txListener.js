@@ -63,7 +63,7 @@ class TxListener {
       } else if (contract.vm === 'ielevm') { // iele vm
         returnValue = RLP.decode(txResult.result).map(x=>x.toString('hex'))
         if (contract.sourceLanguage === 'solidity') { // solidity language
-          returnValue = returnValue.map((val, i)=> ieleTranslator.decode(val, payload.funAbi.outputs[i]))
+          returnValue = returnValue.map((val, i)=> ieleTranslator.decode(val, payload.funAbi.outputs[i]).stringResult)
         } else { // iele language
         }
       } else { // evm
