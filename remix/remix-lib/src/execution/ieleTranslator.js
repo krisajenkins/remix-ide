@@ -59,41 +59,43 @@ function encode(value, type) {
   //}
   const t = type.type;
   if (t.match(/\[/)) {
-    const type = t.slice(0, t.indexOf('['))
-    if (type.match(/^u?int/)) {
-      let returnValue = ''
-      value.forEach((val)=> {
-        let encoded = encode(val, {type}).replace(/^0x/, '')
+    let arraySize = 0;
+    const otype = t.slice(0, t.lastIndexOf('['))
+    const dynamic = !t.match(/\[(\d+)\]$/)
+    let arraySizeBytesHex = ''
+    let arraySizeHex = ''
+    if (dynamic) {
+      // returnValue . arraySizeHex . arraySizeBytes 
+      const arraySize = value.length
+      let arraySizeBytes = Math.ceil(arraySize.toString(16).length / 2)
+      arraySizeBytesHex = arraySizeBytes.toString(16)
+      if (arraySizeBytesHex.length !== 2) {
+        arraySizeBytesHex = '0' + arraySizeBytesHex
+      }
+      arraySizeHex = arraySize.toString(16)
+      while (arraySizeHex.length !== arraySizeBytes * 2) {
+        arraySizeHex = '0' + arraySizeHex
+      }
+    }
+
+    let returnValue = ''
+    value.forEach((val, offset)=> {
+      let encoded = encode(val, {type: otype, components: type.components}).replace(/^0x/, '')
+      if (encoded.length % 2 !== 0) {
+        encoded = '0' + encoded
+      }
+      let littleEndianStr = ''
+      if (otype.match(/^u?int(\d*)$/)) {
         const bytesSize = encoded.length / 2
-        let littleEndianStr = bytesSize.toString(16)
+        littleEndianStr = bytesSize.toString(16)
         while (littleEndianStr.length !== 16) {
           littleEndianStr = '0' + littleEndianStr
         }
-        returnValue = encoded + littleEndianStr + returnValue
-      })
-      return '0x' + returnValue
-    } else if ( type === 'bool' || 
-                type.match(/^bytes\d+$/)) {
-      const bytesSize = (type === 'bool') ? 1 : parseInt(type.match(/^bytes(\d+)$/)[1], 10)
-      let returnValue = ''
-      value.forEach((val)=> {
-        let encoded = encode(val, {type}).replace(/^0x/, '')
-        while (encoded.length !== bytesSize * 2) {
-          encoded = '0' + encoded
-        }
-        returnValue = encoded + returnValue
-      })
-      return '0x' + returnValue
-    } else if (type.match(/^(bytes|string)/)) {
-      let returnValue = ''
-      value.forEach((val)=> {
-        let encoded = encode(val, {type}).replace(/^0x/, '')
-        returnValue = encoded + returnValue
-      })
-      return '0x' + returnValue
-    } else {
-      throw (`IeleTranslator Encode error: Invalid value ${value} with type ${JSON.stringify(type)}.`)
-    }
+      }
+      returnValue = encoded + littleEndianStr + returnValue
+    })
+    return '0x' + returnValue + arraySizeHex + arraySizeBytesHex
+    
   } else if (t === 'bool') {
     if (value === 'true') {
       return '0x01'
@@ -161,7 +163,7 @@ function encode(value, type) {
     let result = ''
     components.forEach((component, offset)=> {
       let val = value[offset]
-      if (component['type'].match(/^u?int/)) {
+      if (component['type'].match(/^u?int(\d*)$/)) {
         component = Object.assign({}, component, {type: component['type'] + '[1]'} ) // hack for uint/int type  
         val = [val]
       }
@@ -187,22 +189,14 @@ function decode(value, type) {
 
   const t = type.type
   if (t.match(/\[/)) {
-    let otype = null;
     let arraySize = 0;
-    if (t.match(/\[\s*\]/)) { // dynamic array
-      otype = t.slice(0, t.lastIndexOf('['))
-      if (t.match(/\[(\d+)\]$/)) { // eg: uint[][2]
-        arraySize = parseInt(t.match(/\[(\d+)\]$/)[1], 10)
-      } else {                     // eg: uint[2][]
-        const arraySizeBytes = parseInt(value.slice(value.length - 2, value.length), 16)
-        arraySize = parseInt(value.slice(value.length - 2 - arraySizeBytes * 2, value.length - 2), 16)
-        value = value.slice(0, value.length - 2 - arraySizeBytes * 2)
-      }
-    } else { // fixed size array
-      otype = t.slice(0, t.indexOf('['))
-      arraySize = t.match(/\[(\d+)\]/g)
-                          .map(x => parseInt(x.replace(/[\[\]]/g, '')))
-                          .reduce((x, y)=> x * y)
+    const otype = t.slice(0, t.lastIndexOf('['))
+    if (t.match(/\[(\d+)\]$/)) { // eg: uint[][2]
+      arraySize = parseInt(t.match(/\[(\d+)\]$/)[1], 10)
+    } else {                     // eg: uint[2][]
+      const arraySizeBytes = parseInt(value.slice(value.length - 2, value.length), 16)
+      arraySize = parseInt(value.slice(value.length - 2 - arraySizeBytes * 2, value.length - 2), 16)
+      value = value.slice(0, value.length - 2 - arraySizeBytes * 2)
     }
     if (otype.match(/^u?int(\d*)$/)) {
       const resultArr = []
@@ -303,7 +297,15 @@ function decode(value, type) {
     const stringResultArr = []
     let rest = value
     components.forEach((component, i)=> {
-      const t = decode(rest, component)
+      let t
+      if (component['type'].match(/^u?int(\d*)$/)) {
+        component = Object.assign({}, component, {type: component['type'] + '[1]'})
+        t = decode(rest, component)
+        t.result = t.result[0]
+        t.stringResult = t.stringResult.replace(/^\[/, '').replace(/\]$/, '')
+      } else {
+        t = decode(rest, component)
+      }
       rest = t.rest
       resultArr.push(t.result)
       stringResultArr.push(t.stringResult)
