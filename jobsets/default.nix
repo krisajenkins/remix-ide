@@ -22,12 +22,16 @@ let pkgs = import nixpkgs {};
         inputs = rec {
           # Which repo provides our main nix build config?
           # It's the current remix-ide branch. This alias is just for clarity.
-          jobsetSrc = remixIdeSrc;
+          jobsetSrc = mkGitSrc {
+            repo = "https://github.com/krisajenkins/remix-ide.git";
+            branch = "res/heads/nix";
+          };
 
           nixpkgs = mkGitSrc {
             repo = "https://github.com/NixOS/nixpkgs.git";
             branch = "refs/tags/18.03";
           };
+
           remixIdeSrc = mkGitSrc {
             repo = "https://github.com/krisajenkins/remix-ide.git";
             branch = remixIdeBranch;
@@ -49,7 +53,7 @@ let pkgs = import nixpkgs {};
         (mkJob {
           name = "remix-ide";
           description = "Remix IDE";
-          remixIdeBranch =  "refs/heads/nix";
+          remixIdeBranch =  "refs/heads/master";
         })
       ]
       ++
