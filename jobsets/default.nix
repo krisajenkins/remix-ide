@@ -24,7 +24,7 @@ let pkgs = import nixpkgs {};
           # It's the current remix-ide branch. This alias is just for clarity.
           jobsetSrc = mkGitSrc {
             repo = "https://github.com/krisajenkins/remix-ide.git";
-            branch = "res/heads/nix";
+            branch = "refs/heads/nix";
           };
 
           nixpkgs = mkGitSrc {
