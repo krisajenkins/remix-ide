@@ -1,25 +1,41 @@
-diff --git a/jobsets/remix-ide.patch b/jobsets/remix-ide.patch
-index e8fad35a..e69de29b 100644
---- a/jobsets/remix-ide.patch
-+++ b/jobsets/remix-ide.patch
-@@ -1,13 +0,0 @@
--diff --git a/package.json b/package.json
--index 7b8cfa38..6f0bcc80 100644
----- a/package.json
--+++ b/package.json
--@@ -172,7 +172,7 @@
--     "serve_debugger": "execr --silent http-server src/app/debugger/remix-debugger",
--     "sourcemap": "exorcist --root ../ build/app.js.map > build/app.js",
--     "start": "npm-run-all -lpr serve watch onchange remixd",
---    "test": "npm run csslint; standard && node test/index.js",
--+    "test": "npm run csslint; node test/index.js",
--     "test-browser": "npm-run-all -lpr selenium downloadsolc_root make-mock-compiler serve browsertest",
--     "watch": "watchify src/index.js -dv -p browserify-reload -o build/app.js"
--   }
 diff --git a/package.json b/package.json
-index 7b8cfa38..6f0bcc80 100644
+index edc97afe..6f0bcc80 100644
 --- a/package.json
 +++ b/package.json
+@@ -40,7 +40,7 @@
+     "remix-lib": "latest",
+     "remix-solidity": "latest",
+     "remix-tests": "latest",
+-    "remixd": "git+https://github.com/ethereum/remixd.git",
++    "remixd": "https://github.com/ethereum/remixd.git",
+     "request": "^2.83.0",
+     "rimraf": "^2.6.1",
+     "selenium-standalone": "^6.0.1",
+@@ -57,11 +57,11 @@
+   },
+   "dependencies": {
+     "http-server": "0.9.0",
+-    "remixd": "git+https://github.com/ethereum/remixd.git"
++    "remixd": "https://github.com/ethereum/remixd.git"
+   },
+   "repository": {
+     "type": "git",
+-    "url": "git+https://github.com/ethereum/remix-ide.git"
++    "url": "https://github.com/ethereum/remix-ide.git"
+   },
+   "keywords": [
+     "ethereum",
+@@ -151,8 +151,8 @@
+     "build_debugger": "browserify src/app/debugger/remix-debugger/index.js -o src/app/debugger/remix-debugger/build/app.js",
+     "browsertest": "sleep 5 && npm run nightwatch_local",
+     "csslint": "csslint --ignore=order-alphabetical --errors='errors,duplicate-properties,empty-rules' --exclude-list='assets/css/font-awesome.min.css' assets/css/",
+-    "downloadsolc": "rimraf soljson.js && cd node_modules/solc && wget --no-check-certificate https://solc-bin.ethereum.org/soljson.js && cd ../../",
+-    "downloadsolc_root": "wget --no-check-certificate https://solc-bin.ethereum.org/soljson.js",
++    "downloadsolc": "rimraf soljson.js && cd node_modules/solc && wget https://solc-bin.ethereum.org/soljson.js && cd ../../",
++    "downloadsolc_root": "wget https://solc-bin.ethereum.org/soljson.js",
+     "lint": "standard | notify-error",
+     "make-mock-compiler": "node ci/makeMockCompiler.js",
+     "minify": "uglifyjs --in-source-map inline --source-map-inline -c warnings=false",
 @@ -172,7 +172,7 @@
      "serve_debugger": "execr --silent http-server src/app/debugger/remix-debugger",
      "sourcemap": "exorcist --root ../ build/app.js.map > build/app.js",
@@ -30,14 +46,28 @@ index 7b8cfa38..6f0bcc80 100644
      "watch": "watchify src/index.js -dv -p browserify-reload -o build/app.js"
    }
 diff --git a/src/app.js b/src/app.js
-index c72a65d1..8056c908 100644
+index c72a65d1..e4ea7839 100644
 --- a/src/app.js
 +++ b/src/app.js
-@@ -221,6 +221,7 @@ function run () {
- Please only use it if you know what you are doing, otherwise visit the stable version at http://remix.ethereum.org.`)
-   } else if (window.location.protocol.indexOf('http') === 0 &&
-   window.location.hostname !== 'remix.ethereum.org' &&
-+  window.location.hostname !== 'remix-staging-iele.kevm-private.mantis.iohkdev.io' &&
-   window.location.hostname !== 'localhost' &&
-   window.location.hostname !== '127.0.0.1') {
-     modalDialogCustom.alert(`The Remix IDE has moved to http://remix.ethereum.org.\n
+@@ -213,21 +213,6 @@ module.exports = App
+ function run () {
+   var self = this
+ 
+-  if (window.location.hostname === 'yann300.github.io') {
+-    modalDialogCustom.alert('This UNSTABLE ALPHA branch of Remix has been moved to http://ethereum.github.io/remix-live-alpha.')
+-  } else if (window.location.hostname === 'remix-alpha.ethereum.org' ||
+-  (window.location.hostname === 'ethereum.github.io' && window.location.pathname.indexOf('/remix-live-alpha') === 0)) {
+-    modalDialogCustom.alert(`This instance of the Remix IDE is an UNSTABLE ALPHA branch.\n
+-Please only use it if you know what you are doing, otherwise visit the stable version at http://remix.ethereum.org.`)
+-  } else if (window.location.protocol.indexOf('http') === 0 &&
+-  window.location.hostname !== 'remix.ethereum.org' &&
+-  window.location.hostname !== 'localhost' &&
+-  window.location.hostname !== '127.0.0.1') {
+-    modalDialogCustom.alert(`The Remix IDE has moved to http://remix.ethereum.org.\n
+-This instance of Remix you are visiting WILL NOT BE UPDATED.\n
+-Please make a backup of your contracts and start using http://remix.ethereum.org`)
+-  }
+-
+   if (window.location.protocol.indexOf('https') === 0) {
+     toolTip('You are using an `https` connection. Please switch to `http` if you are using Remix against an `http Web3 provider` or allow Mixed Content in your browser.')
+   }
