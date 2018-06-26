@@ -245,6 +245,11 @@ var css = csjs`
     padding-top: 5px;
     float: right;
   }
+  .multifields {
+    display: flex;
+    flex-direction: column;
+    padding-left: 12px;
+  }
 `
 
 module.exports = css

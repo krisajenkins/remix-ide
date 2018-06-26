@@ -105,7 +105,7 @@ function encode(value, type) {
       throw (`IeleTranslator error: Invalid value ${value} with type ${JSON.stringify(type)}.` )
     }
   } else if (t === 'address') {
-    return (value.startsWidth('0x') ? '' : '0x') + value
+    return (value.startsWith('0x') ? '' : '0x') + value
   } else if (t.match(/^uint/)) {
     const num = parseInt(value)
     if (num < 0) {
@@ -242,7 +242,11 @@ function decode(value, type) {
       rest
     }
   } else if (t === 'address') {
-    const result = '0x' + value.slice(value.length - 40, value.length)
+    let result = value.slice(value.length - 40, value.length)
+    while (result.length !== 40) {
+      result = '0' + result
+    }
+    result = '0x' + result
     const stringResult = result
     const rest = value.slice(0, value.length - 40)
     return {

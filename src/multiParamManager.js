@@ -97,7 +97,7 @@ class MultiParamManager {
 
   createMultiFields () {
     if (this.funABI.inputs) {
-      return yo`<div>
+      return yo`<div class="${css.multifields}">
         ${this.funABI.inputs.map(function (inp) {
           return yo`<div class="${css.multiArg}"><label for="${inp.name}"> ${inp.name}: </label><input placeholder="${inp.type}" id="${inp.name}" title="${inp.name}"></div>`
         })}
