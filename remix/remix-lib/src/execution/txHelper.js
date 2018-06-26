@@ -27,7 +27,24 @@ module.exports = {
     console.log('* vm: ', vm)
     if (vm === 'ielevm') {
       if (sourceLanguage === 'iele') {
-        return args.map((x)=> ieleTranslator.encode(x, {type: 'int'}))
+        console.log('- encodeParams for iele: ', args.map((x)=> {
+          if (x.startsWith('0x')) {
+            return x
+          } else if (!isNaN(x)) {
+            return '0x' + parseInt(x).toString('hex')
+          } else {
+            return '0x' + x
+          }
+        }))
+        return args.map((x)=> {
+          if (x.startsWith('0x')) {
+            return x
+          } else if (!isNaN(x)) {
+            return '0x' + parseInt(x).toString('hex')
+          } else {
+            return '0x' + x
+          }
+        })
       } else { // solidity
         console.log('- encodedParams for solidity: ', args.map((x, i)=> {
           return ieleTranslator.encode(x, funABI.inputs[i]) 
