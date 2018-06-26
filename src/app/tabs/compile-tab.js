@@ -178,6 +178,7 @@ module.exports = class CompileTab {
       </div>`
     const help = {
       'Assembly': 'Assembly opcodes describing the contract including corresponding solidity source code',
+      'IeleAssembly': 'IELE Assembly code describing the contract including corresponding solidity source code', // @rv
       'Opcodes': 'Assembly opcodes describing the contract',
       'Runtime Bytecode': 'Bytecode storing the state and being executed during normal contract call',
       'bytecode': 'Bytecode being executed during contract creation',
@@ -211,7 +212,8 @@ module.exports = class CompileTab {
     }
     function insertValue (details, propertyName) {
       var node
-      if (propertyName === 'web3Deploy' || propertyName === 'name' || propertyName === 'Assembly') {
+      if (propertyName === 'web3Deploy' || propertyName === 'name' || propertyName === 'Assembly' || 
+          propertyName === 'IeleAssembly') { // @rv
         node = yo`<pre>${details[propertyName]}</pre>`
       } else if (propertyName === 'abi' || propertyName === 'metadata') {
         const treeView = new TreeView({
@@ -284,7 +286,7 @@ const css = csjs`
     margin-bottom: 2%;
   }
   .autocompileContainer {
-    width: 90px;
+    width: 92px;
     display: flex;
     align-items: center;
   }

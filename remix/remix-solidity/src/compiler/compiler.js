@@ -100,12 +100,17 @@ function Compiler (handleImportCall) {
       if (json1['error']) {
         throw json1['error']['data'].toString()
       }
+      console.log('- json1: ', json1)
 
       let code = json1['result']
       const index = code.indexOf('\n=====')         // TODO: multiple .sol files will produce multiple ====
       code = code.slice(index, code.length)
       code = code.replace(/^IELE\s+assembly\s*\:\s*$/mgi, '')
-      const ieleCode = code.replace(/^=====/mg, '// =====')
+      const ieleCode = code.replace(/^=====/mg, '// =====').trim()
+      // console.log('- ieleCode: |' + ieleCode + '|')
+      if (!ieleCode) { // error. eg ballot.sol
+        throw json1['result']
+      }
       const newTarget = source.target.replace(/\.sol$/, '.iele')
       const contractNamesMatch = ieleCode.match(/\s*contract\s+(.+?){\s*/ig) // the last contract is the main contract (from Dwight)
       let contractName = ""
@@ -145,7 +150,6 @@ function Compiler (handleImportCall) {
       }
       contracts[targetContractName]['metadata'] = {
         vm: 'iele vm',
-        ieleAssembly: ieleCode
       }
       contracts[targetContractName]['ielevm'] = {
         bytecode: {
@@ -156,7 +160,8 @@ function Compiler (handleImportCall) {
           executionCost: '0',
           totalCost: '0'
         },
-        abi: ieleAbi
+        abi: ieleAbi,
+        ieleAssembly: ieleCode
       }
       contracts[targetContractName]['vm'] = 'ielevm'
       contracts[targetContractName]['sourceLanguage'] = 'solidity'
@@ -188,7 +193,17 @@ function Compiler (handleImportCall) {
       contracts[targetContractName]['abi'] = abi // override old abi
       return cb(result)   
     } catch(error) {
-      return cb({ error: error.toString() })
+      console.log('@compileSolidityToIELE catch error: ', error)
+      const message = error.toString()
+      return cb({ 
+        error: {
+          component: 'general',
+          formattedMessage: message,
+          severity: 'warning',
+          type: 'Warning',
+          message
+        }
+      })
     }
   }
 
