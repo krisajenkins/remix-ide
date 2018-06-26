@@ -6,6 +6,7 @@ var asyncJS = require('async')
 var solcLinker = require('solc/linker')
 var ethJSUtil = require('ethereumjs-util')
 const RLP = require('rlp') // @rv: import RLP for encoding Iele transaction.
+const ieleTranslator = require('./ieleTranslator')
 
 // TODO: @rv: this file needs to be modified to support encoding for IELE
 
@@ -264,9 +265,8 @@ module.exports = {
         console.log('* data: ', data)
         console.log('* funArgs: ', funArgs)
         if (contract.sourceLanguage === 'solidity') {  // convert to iele function name
-          console.log('* solidity2iele funName: ', `${funAbi.name}(${(funAbi.inputs && funAbi.inputs.length) ? funAbi.inputs.map((input)=>input.type).join(',') : '' })`)
-
-          dataHex = RLP.encode([`${funAbi.name}(${(funAbi.inputs && funAbi.inputs.length) ? funAbi.inputs.map((input)=>input.type).join(',') : '' })`, data]).toString('hex')
+          console.log('* solidity2iele funName: ', ieleTranslator.encodeSolidityFunctionName(funAbi))
+          dataHex = RLP.encode([ieleTranslator.encodeSolidityFunctionName(funAbi), data]).toString('hex')
         } else {
           dataHex = RLP.encode([funAbi.name, data]).toString('hex')
         }

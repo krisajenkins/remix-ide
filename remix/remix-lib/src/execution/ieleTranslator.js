@@ -320,10 +320,29 @@ function decode(value, type) {
   }
 }
 
+/**
+ * @param {{name: string, inputs: {type: string, components: object[]}[]}} funAbi
+ */
+function encodeSolidityFunctionName(funAbi) {
+  function helper(input) {
+    if (input.type === 'tuple') {
+      const components = input.components || []
+      return `(${components.map((input)=> helper(input)).join(',')})`
+    } else {
+      return input.type
+    }
+  }
+  return `${funAbi.name}(${(funAbi.inputs && funAbi.inputs.length) ? funAbi.inputs.map((input)=>{
+    return helper(input)
+  }).join(',') : '' })`
+}
+
 window['ieleTranslator'] = {
   encode,
-  decode
+  decode,
+  encodeSolidityFunctionName
 }
 
 module.exports.encode = encode
 module.exports.decode = decode
+module.exports.encodeSolidityFunctionName = encodeSolidityFunctionName
