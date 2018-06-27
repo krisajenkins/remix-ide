@@ -175,6 +175,8 @@ function runTab (appAPI = {}, appEvents = {}, opts = {}) {
     instanceContainer.appendChild(instanceContainerTitle)
     instanceContainer.appendChild(self._view.noInstancesText)
   })
+
+  selectExEnv.dispatchEvent(new Event('change')) // @rv;
   return { render () { return container } }
 }
 

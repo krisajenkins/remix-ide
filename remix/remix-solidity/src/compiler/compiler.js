@@ -130,6 +130,7 @@ function Compiler (handleImportCall) {
         })
       })
       const json2 = await response2.json()
+      // console.log('- json2: ', json2)
       if (json2['error']) {
         throw json2['error']['data'].toString()
       }
@@ -373,17 +374,37 @@ function Compiler (handleImportCall) {
         compiler = solc(window.Module)
       }
 
-      compileJSON = function (source, optimize, cb) {
+      let firstTimeCompile = true // @rv: hack the sol.js Maximum call stack size exceeded bug.
+
+      compileJSON = async function (source, optimize, cb) {
         var missingInputs = []
         var missingInputsCallback = function (path) {
           missingInputs.push(path)
           return { error: 'Deferred import' }
         }
 
-        var result
+        let result
         try {
-          var input = compilerInput(source.sources, {optimize: optimize, target: source.target})
-          result = compiler.compileStandardWrapper(input, missingInputsCallback)
+          const input = compilerInput(source.sources, {optimize: optimize, target: source.target})
+          // @rv: hack, compile twice if this is the first time compilation.
+          try {
+            result = compiler.compileStandardWrapper(input, missingInputsCallback)
+          } catch(error) {
+            if (firstTimeCompile) {
+              firstTimeCompile = false
+              result = await new Promise((resolve, reject)=> {
+                setTimeout(()=> {
+                  try {
+                    return resolve(compiler.compileStandardWrapper(input, missingInputsCallback))
+                  } catch(error) {
+                    return reject(error)
+                  }
+                }, 3000)
+              })
+            } else {
+              throw error
+            }
+          }
           result = JSON.parse(result)
 
           // @rv: add `sourceLanguage` and `vm` fields
@@ -487,7 +508,7 @@ function Compiler (handleImportCall) {
   }
 
   function compilationFinished (data, missingInputs, source) {
-    // console.log("@compiler.js compilationFinished", data, missingInputs, source)
+    console.log('@compilationFinished: ', data)
     var noFatalErrors = true // ie warnings are ok
 
     function isValidError (error) {
@@ -536,7 +557,6 @@ function Compiler (handleImportCall) {
 
   // TODO: needs to be changed to be more node friendly
   this.loadVersion = function (usingWorker, url) {
-    console.log('Loading ' + url + ' ' + (usingWorker ? 'with worker' : 'without worker'))
     self.event.trigger('loadingCompiler', [url, usingWorker])
 
     if (usingWorker) {
@@ -560,13 +580,9 @@ function Compiler (handleImportCall) {
     newScript.type = 'text/javascript'
     newScript.src = url
     document.getElementsByTagName('head')[0].appendChild(newScript)
-    var check = window.setInterval(function () {
-      if (!window.Module) {
-        return
-      }
-      window.clearInterval(check)
-      onInternalCompilerLoaded()
-    }, 200)
+    newScript.onload = function() { // @rv: sol.js loaded
+      onInternalCompilerLoaded();
+    }
   }
 
   function loadWorker (url) {

@@ -134,7 +134,10 @@ module.exports = class CompileTab {
 
     // @rv
     executionContext.event.register('contextChanged', ()=> {
-      document.getElementById('compile').innerText = `Start to compile (${(executionContext.isIeleVM() ? 'ielevm' : 'evm')})`
+      const compileEl = document.getElementById('compile')
+      if (compileEl) {
+        compileEl.innerText = `Start to compile (${(executionContext.isIeleVM() ? 'ielevm' : 'evm')})`
+      }
     })
   }
   render () {
