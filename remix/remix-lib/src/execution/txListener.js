@@ -329,8 +329,6 @@ class TxListener {
           params
         }
         if (tx.returnValue) {
-          window['tx'] = tx
-          window['decoded'] = decoded
           this._resolvedTransactions[tx.hash].decodedReturnValue = tx.returnValue
         }
         return this._resolvedTransactions[tx.hash]

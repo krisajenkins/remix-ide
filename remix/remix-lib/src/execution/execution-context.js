@@ -90,6 +90,8 @@ function ExecutionContext () {
     this.config = config // @rv: save config to this object scope
     if (config.get('settings/always-use-vm')) {
       executionContext = 'vm'
+    } else if (config.get('history/execution-context')) {
+      executionContext = config.get('history/execution-context')
     } else {
       executionContext = injectedProvider ? 'injected' : 'vm'
     }
@@ -183,6 +185,9 @@ function ExecutionContext () {
 
   this.executionContextChange = function (context, endPointUrl, confirmCb, infoCb, cb) {
     if (!cb) cb = () => {}
+
+    // @rv: save context to history
+    this.config.set('history/execution-context', context)
 
     if (context === 'vm') {
       executionContext = context

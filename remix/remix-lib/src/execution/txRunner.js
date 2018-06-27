@@ -87,7 +87,6 @@ TxRunner.prototype._sendTransaction = function (sendTx, tx, pass, chainId, priva
       }
       const ethTx = new EthJSTX(newTx)
       ethTx.sign(privateKey)
-      window['ethTx'] = ethTx
       const serializedTx = ethTx.serialize()  
       args = ["0x" + serializedTx.toString('hex'), cb]
       // console.log('* binary data: ', "0x" + serializedTx.toString('hex'))
