@@ -508,7 +508,7 @@ function Compiler (handleImportCall) {
   }
 
   function compilationFinished (data, missingInputs, source) {
-    console.log('@compilationFinished: ', data)
+    // console.log('@compilationFinished: ', data)
     var noFatalErrors = true // ie warnings are ok
 
     function isValidError (error) {
