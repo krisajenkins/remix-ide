@@ -176,11 +176,11 @@ UniversalDApp.prototype.pendingTransactions = function () {
 }
 
 UniversalDApp.prototype.call = function (isUserAction, args, value, lookupOnly, outputCb) {
-  console.log('@universal-dapp.js UniversalDApp.prototype.call')
-  console.log('* isUserAction: ', isUserAction)
-  console.log('* args: ', args)
-  console.log('* value: ', value)
-  console.log('* lookupOnly: ', lookupOnly)
+  // console.log('@universal-dapp.js UniversalDApp.prototype.call')
+  // console.log('* isUserAction: ', isUserAction)
+  // console.log('* args: ', args)
+  // console.log('* value: ', value)
+  // console.log('* lookupOnly: ', lookupOnly)
   const self = this
   const isIeleVM = executionContext.isIeleVM()
   var logMsg
@@ -218,7 +218,7 @@ UniversalDApp.prototype.call = function (isUserAction, args, value, lookupOnly, 
           if (lookupOnly) {
             if (isIeleVM) {
               const returnValue = RLP.decode(txResult.result).map(x=> '0x'+x.toString('hex'))
-              console.log('@universal-dapp.js UniversalDApp.prototype.call => returnValue: ', returnValue)
+              // console.log('@universal-dapp.js UniversalDApp.prototype.call => returnValue: ', returnValue)
               if (args.sourceLanguage === 'solidity') { // solidity language
                 // decode results for solidity
                 const ieleTranslator = remixLib.execution.ieleTranslator 
@@ -396,11 +396,11 @@ UniversalDApp.prototype.runTx = function (args, cb) {
       }
     },
     function runTransaction (fromAddress, value, gasLimit, privateKey, next) {
-      console.log('@universal-dapp.js runTransaction')
-      console.log('* fromAddress: ', fromAddress)
-      console.log('* value: ', value)
-      console.log('* gasLimit: ', gasLimit)
-      console.log('* args: ', args)
+      // console.log('@universal-dapp.js runTransaction')
+      // console.log('* fromAddress: ', fromAddress)
+      // console.log('* value: ', value)
+      // console.log('* gasLimit: ', gasLimit)
+      // console.log('* args: ', args)
       var tx = { to: args.to, data: args.data.dataHex, useCall: args.useCall, from: fromAddress, value: value, gasLimit: gasLimit, privateKey: privateKey }
       var payLoad = { funAbi: args.data.funAbi, funArgs: args.data.funArgs, contractBytecode: args.data.contractBytecode, contractName: args.data.contractName }
       var timestamp = Date.now()
@@ -418,7 +418,7 @@ UniversalDApp.prototype.runTx = function (args, cb) {
       self.event.trigger('initiatingTransaction', [timestamp, tx, payLoad])
       self.txRunner.rawRun(tx,
         (network, tx, gasEstimation, continueTxExecution, cancelCb) => {
-          console.log('@universal-dapp.js self.txRunner.rawRun finished')
+          // console.log('@universal-dapp.js self.txRunner.rawRun finished')
           if (network.name !== 'Main' && !executionContext.isCustomRPC()) { // @rv: Let user specify gasPrice
             return continueTxExecution(null)
           }

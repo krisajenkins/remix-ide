@@ -35,10 +35,10 @@ UniversalDAppUI.prototype.renderInstance = function (contract, address, contract
 // basically this has to be called for the "atAddress" (line 393) and when a contract creation succeed
 // this returns a DOM element
 UniversalDAppUI.prototype.renderInstanceFromABI = function (contractABI, address, contractName) { // TODO: support IELE
-  console.log('@universal-dapp-ui.js UniversalDAppUI.prototype.renderInstanceFromABI')
-  console.log('* contractABI: ', contractABI)
-  console.log('* address: ', address)
-  console.log('* contractName: ', contractName)
+  // console.log('@universal-dapp-ui.js UniversalDAppUI.prototype.renderInstanceFromABI')
+  // console.log('* contractABI: ', contractABI)
+  // console.log('* address: ', address)
+  // console.log('* contractName: ', contractName)
   var self = this
   address = (address.slice(0, 2) === '0x' ? '' : '0x') + address.toString('hex')
   var instance = yo`<div class="instance ${css.instance} ${css.hidesub}" id="instance${address}"></div>`
@@ -106,8 +106,8 @@ UniversalDAppUI.prototype.renderInstanceFromABI = function (contractABI, address
  * @param {{funABI:object, address: string, contractAbi: string, contractName: string, isIeleLanguage: boolean}} args
  */
 UniversalDAppUI.prototype.getCallButton = function (args) {
-  console.log('@universal-dapp-ui.js UniversalDAppUI.prototype.getCallButton')
-  console.log('* args: ', args)
+  // console.log('@universal-dapp-ui.js UniversalDAppUI.prototype.getCallButton')
+  // console.log('* args: ', args)
   const isIeleLanguage = args.isIeleLanguage
   const self = this
   // args.funABI, args.address [fun only]

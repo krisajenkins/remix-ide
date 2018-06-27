@@ -26,10 +26,10 @@ class Recorder {
     })
 
     opts.events.udapp.register('initiatingTransaction', (timestamp, tx, payLoad) => {
-      console.log('@recorder.js initiatingTransaction!!')
+      // console.log('@recorder.js initiatingTransaction!!')
       if (tx.useCall) return
       var { from, to, value } = tx
-      console.log('-- this.data._listen = ', this.data._listen)
+      // console.log('-- this.data._listen = ', this.data._listen)
       // convert to and from to tokens
       if (this.data._listen) {
         const record = { value, parameters: payLoad.funArgs }
@@ -38,7 +38,7 @@ class Recorder {
           if (selectedContract) {
             const abi = selectedContract.object.abi
             const isIele = selectedContract.object.ielevm // @rv: check iele
-            console.log('-- isIele: ', isIele) 
+            // console.log('-- isIele: ', isIele) 
             if (!isIele) { // TODO: <= support iele for record here.
               const sha3 = ethutil.bufferToHex(ethutil.sha3(abi))
               record.abi = sha3
@@ -66,7 +66,7 @@ class Recorder {
         record.name = payLoad.funAbi.name
         record.type = payLoad.funAbi.type
 
-        console.log('### ENTER HERE 1')
+        // console.log('### ENTER HERE 1')
 
         udapp.getAccounts((error, accounts) => {
           if (error) return console.log(error)

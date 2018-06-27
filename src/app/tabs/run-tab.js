@@ -744,7 +744,16 @@ function settings (container, appAPI, appEvents, opts) {
       name: 'KEVM Testnet',
       context: 'custom-rpc-kevm-testnet',
       chainId: undefined,
-      rpcUrl: 'https://kevm-testnet.iohkdev.io:8546/'
+      rpcUrl: 'https://kevm-testnet.iohkdev.io:8546/',
+      vm: 'evm'
+    })
+
+    addIfNotExists({
+      name: 'IELE Testnet (dev)',
+      context: 'custom-rpc-iele-testnet-dev',
+      chainId: undefined,
+      rpcUrl: 'https://staging-iele.kevm-private.mantis.iohkdev.io:8546/',
+      vm: 'ielevm'
     })
 
     opts.config.set('custom-rpc-list', customRPCList)

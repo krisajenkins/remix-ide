@@ -106,7 +106,6 @@ class MultiParamManager {
   }
 
   render () {
-    console.log('@multiParamManager.js render')
     var title
     if (this.title) {
       title = this.title

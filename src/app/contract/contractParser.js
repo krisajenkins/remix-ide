@@ -8,7 +8,7 @@ module.exports = (contractName, contract, compiledSource) => {
 }
 
 var getDetails = function (contractName, contract, source) {
-  console.log('@contractParser.js getDetails: ', contractName, contract, source)
+  // console.log('@contractParser.js getDetails: ', contractName, contract, source)
   var detail = {}
   detail.name = contractName
   detail.metadata = contract.metadata

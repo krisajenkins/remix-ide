@@ -51,7 +51,7 @@ module.exports = {
   * @param {Function} callback    - callback
   */
   encodeParams: function (params, funAbi, isIele, callback) {
-    console.log(`@txFormat.js encodeParams: `, params, funAbi)
+    // console.log(`@txFormat.js encodeParams: `, params, funAbi)
     var data = ''
     var dataHex = ''
     var funArgs
@@ -188,13 +188,13 @@ module.exports = {
   * @param {function} callbackDeployLibrary  - callbackDeployLibrary
   */
   buildData: function (contractName, contract, contracts, isConstructor, funAbi, params, callback, callbackStep, callbackDeployLibrary) {
-    console.log('@txFormat.js buildData => ')
-    console.log('* contractName: ', contractName)
-    console.log('* contract: ', contract)
-    console.log('* contracts: ', contracts)
-    console.log('* isConstructor: ', isConstructor)
-    console.log('* funAbi: ', funAbi)
-    console.log('* params: ', params)
+    // console.log('@txFormat.js buildData => ')
+    // console.log('* contractName: ', contractName)
+    // console.log('* contract: ', contract)
+    // console.log('* contracts: ', contracts)
+    // console.log('* isConstructor: ', isConstructor)
+    // console.log('* funAbi: ', funAbi)
+    // console.log('* params: ', params)
     var funArgs = ''
     var data = ''
     var dataHex = ''
@@ -231,16 +231,13 @@ module.exports = {
     var contractBytecode
     if (isConstructor) {
       if (contract.vm === 'ielevm') {
-        console.log('@txFormat.js deploy IELE smart contract: ')
-        console.log('* contractByteCode: ', contract.ielevm.bytecode.object)
-        console.log('* data: ', data)
-        console.log('* funArgs: ', funArgs)
+        // console.log('@txFormat.js deploy IELE smart contract: ')
+        // console.log('* contractByteCode: ', contract.ielevm.bytecode.object)
+        // console.log('* data: ', data)
+        // console.log('* funArgs: ', funArgs)
         contractBytecode = contract.ielevm.bytecode.object 
-        window['RLP'] = RLP 
-        window['data'] = data 
-        window['contractBytecode'] = contractBytecode
         dataHex = RLP.encode([(contractBytecode.startsWith('0x') ? '' : '0x') + contractBytecode, data]).toString('hex') // 0x here is necessary
-        console.log('* dataHex: ', dataHex)
+        // console.log('* dataHex: ', dataHex)
       } else {
         contractBytecode = contract.evm.bytecode.object
         var bytecodeToDeploy = contract.evm.bytecode.object
@@ -260,17 +257,17 @@ module.exports = {
       }
     } else {
       if (contract.vm === 'ielevm') {
-        console.log('@txFormat.js call function: ')
-        console.log('* funAbi.name: ', funAbi.name)
-        console.log('* data: ', data)
-        console.log('* funArgs: ', funArgs)
+        // console.log('@txFormat.js call function: ')
+        // console.log('* funAbi.name: ', funAbi.name)
+        // console.log('* data: ', data)
+        // console.log('* funArgs: ', funArgs)
         if (contract.sourceLanguage === 'solidity') {  // convert to iele function name
-          console.log('* solidity2iele funName: ', ieleTranslator.encodeSolidityFunctionName(funAbi))
+          // console.log('* solidity2iele funName: ', ieleTranslator.encodeSolidityFunctionName(funAbi))
           dataHex = RLP.encode([ieleTranslator.encodeSolidityFunctionName(funAbi), data]).toString('hex')
         } else {
           dataHex = RLP.encode([funAbi.name, data]).toString('hex')
         }
-        console.log('* dataHex: ', dataHex)
+        // console.log('* dataHex: ', dataHex)
       } else {
         dataHex = helper.encodeFunctionId(funAbi) + dataHex
       }

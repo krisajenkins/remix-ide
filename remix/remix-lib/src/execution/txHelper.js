@@ -20,14 +20,14 @@ module.exports = {
    * @return {string[]|string} if isIele, returns string[], else returns string
    */
   encodeParams: function (funABI, args, sourceLanguage, vm) {
-    console.log('@txHelper.js encodeParams')
-    console.log('* funABI: ', funABI)
-    console.log('* args: ', args)
-    console.log('* sourceLanguage: ', sourceLanguage)
-    console.log('* vm: ', vm)
+    // console.log('@txHelper.js encodeParams')
+    // console.log('* funABI: ', funABI)
+    // console.log('* args: ', args)
+    // console.log('* sourceLanguage: ', sourceLanguage)
+    // console.log('* vm: ', vm)
     if (vm === 'ielevm') {
       if (sourceLanguage === 'iele') {
-        console.log('- encodeParams for iele: ', args.map((x)=> {
+        // console.log('- encodeParams for iele: ', args.map((x)=> {
           if (x.startsWith('0x')) {
             return x
           } else if (!isNaN(x)) {
@@ -46,7 +46,7 @@ module.exports = {
           }
         })
       } else { // solidity
-        console.log('- encodedParams for solidity: ', args.map((x, i)=> {
+        // console.log('- encodedParams for solidity: ', args.map((x, i)=> {
           return ieleTranslator.encode(x, funABI.inputs[i]) 
         }))
         return args.map((x, i)=> {

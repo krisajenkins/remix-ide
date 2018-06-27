@@ -78,7 +78,7 @@ function Compiler (handleImportCall) {
   }
 
   async function compileSolidityToIELE(result, source, cb) {
-    console.log('@compileSolidityToIELE', result, source)
+    // console.log('@compileSolidityToIELE', result, source)
     const apiGateway = 'https://5c177bzo9e.execute-api.us-east-1.amazonaws.com/prod'
     const params = [source.target, {}]
     const sources = source.sources
@@ -100,7 +100,7 @@ function Compiler (handleImportCall) {
       if (json1['error']) {
         throw json1['error']['data'].toString()
       }
-      console.log('- json1: ', json1)
+      // console.log('- json1: ', json1)
 
       let code = json1['result']
       const index = code.indexOf('\n=====')         // TODO: multiple .sol files will produce multiple ====
@@ -136,8 +136,8 @@ function Compiler (handleImportCall) {
       const r = json2['result'] // TODO: check r error.
       const bytecode = isNaN('0x' + r) ? '' : r
       const ieleAbi = retrieveIELEAbi(ieleCode, contractName)
-      console.log('- contractName: ', contractName)
-      console.log('- targetContractName: ', targetContractName)
+      // console.log('- contractName: ', contractName)
+      // console.log('- targetContractName: ', targetContractName)
       const contracts = result.contracts[source.target] || {}
       for (const name in contracts) {
         if (name !== targetContractName) {
@@ -193,7 +193,7 @@ function Compiler (handleImportCall) {
       contracts[targetContractName]['abi'] = abi // override old abi
       return cb(result)   
     } catch(error) {
-      console.log('@compileSolidityToIELE catch error: ', error)
+      // console.log('@compileSolidityToIELE catch error: ', error)
       const message = error.toString()
       return cb({ 
         error: {
@@ -230,7 +230,7 @@ function Compiler (handleImportCall) {
   }
 
   function compileIELE(sources, target) {
-    console.log('@compileIELE', sources, target)
+    // console.log('@compileIELE', sources, target)
     const apiGateway = 'https://5c177bzo9e.execute-api.us-east-1.amazonaws.com/prod'
     const params = [target, {}]
     for (const filePath in sources) {
@@ -249,7 +249,7 @@ function Compiler (handleImportCall) {
     .then(json => {
       if (json['error']) {
         const result = { error: json['error']['data'].toString() }
-        console.log('@compilationFinished 1')
+        // console.log('@compilationFinished 1')
         compilationFinished(result, undefined, {sources, target})
       } else {
         const r = json['result']
@@ -290,14 +290,11 @@ function Compiler (handleImportCall) {
           errors: formatIeleErrors(r, target),
           sources
         }
-        console.log('@compileIELE .iele => result:\n', result)
-        console.log('@compilationFinished 2')
+        // console.log('@compileIELE .iele => result:\n', result)
         compilationFinished(result, undefined, {sources, target})
-        console.log('@done compilationFinished 2')
       }
     })
     .catch((error)=> {
-      console.log('@compilationFinished 3')
       compilationFinished({ error: error.toString(), }, undefined, {sources, target})
     })
   }
@@ -402,12 +399,12 @@ function Compiler (handleImportCall) {
             })
           }
           
-          console.log('@compileJSON .sol => result:\n', result)
+          // console.log('@compileJSON .sol => result:\n', result)
         } catch (exception) {
           result = { error: 'Uncaught JavaScript exception:\n' + exception }
         }
 
-        console.log('@compilationFinished 5')
+        // console.log('@compilationFinished 5')
         compilationFinished(result, missingInputs, source)
       }
       onCompilerLoaded(compiler.version())
@@ -490,7 +487,7 @@ function Compiler (handleImportCall) {
   }
 
   function compilationFinished (data, missingInputs, source) {
-    console.log("@compiler.js compilationFinished", data, missingInputs, source)
+    // console.log("@compiler.js compilationFinished", data, missingInputs, source)
     var noFatalErrors = true // ie warnings are ok
 
     function isValidError (error) {
@@ -519,7 +516,6 @@ function Compiler (handleImportCall) {
     }
 
     if (!noFatalErrors) {
-      console.log('@ There is fatal errors');
       // There are fatal errors - abort here
       self.lastCompilationResult = null
       self.event.trigger('compilationFinished', [false, data, source])
@@ -530,14 +526,11 @@ function Compiler (handleImportCall) {
       if (source.target.endsWith('.sol')) {
         data = updateInterface(data)
       }
-      console.log('@@ success')
       self.lastCompilationResult = {
         data: data,
         source: source
       }
-      console.log('@@ start triggering event')
       self.event.trigger('compilationFinished', [true, data, source])
-      console.log('@@ done trigger event')
     }
   }
 
@@ -560,7 +553,6 @@ function Compiler (handleImportCall) {
 
     // Set a safe fallback until the new one is loaded
     setCompileJSON(function (source, optimize) {
-      console.log('@compilationFinished 6')
       compilationFinished({ error: { formattedMessage: 'Compiler not yet loaded.' } })
     })
 
@@ -601,17 +593,14 @@ function Compiler (handleImportCall) {
             sources = jobs[data.job].sources
             delete jobs[data.job]
           }
-          console.log('@compilationFinished 7')
           compilationFinished(result, data.missingInputs, sources)
           break
       }
     })
     worker.onerror = function (msg) {
-      console.log('@compilationFinished 8')
       compilationFinished({ error: 'Worker error: ' + msg.data })
     }
     worker.addEventListener('error', function (msg) {
-      console.log('@compilationFinished 9')
       compilationFinished({ error: 'Worker error: ' + msg.data })
     })
     compileJSON = function (source, optimize) {
@@ -682,7 +671,6 @@ function Compiler (handleImportCall) {
 
   function updateInterface (data) {
     txHelper.visitContracts(data.contracts, (contract) => {
-      console.log('@updateInterface => @visitContracts')
       data.contracts[contract.file][contract.name].abi = solcABI.update(truncateVersion(currentVersion), contract.object.abi)
     })
     return data

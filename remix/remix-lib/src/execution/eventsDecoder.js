@@ -35,21 +35,21 @@ class EventsDecoder {
     if (!receipt.logs) {
       return cb(null, { decoded: [], raw: [] })
     }
-    console.log('@eventsDecoder.js _decodeLogs')
-    console.log('* tx: ', tx)
-    console.log('* receipt: ', receipt)
-    console.log('* contract: ', contract)
-    console.log('* contracts: ', contracts)
+    // console.log('@eventsDecoder.js _decodeLogs')
+    // console.log('* tx: ', tx)
+    // console.log('* receipt: ', receipt)
+    // console.log('* contract: ', contract)
+    // console.log('* contracts: ', contracts)
 
     this._decodeEvents(tx, receipt.logs, contract, contracts, cb)
   }
 
   _eventABI (contract) {
     // TODO: @rv: support event log for IELE language
-    console.log('@eventsDecoder.js _eventABI')
-    console.log('* contract: ', contract)
+    // console.log('@eventsDecoder.js _eventABI')
+    // console.log('* contract: ', contract)
     if (contract.sourceLanguage === 'iele') {
-      return {}
+       return {}
     }
     
     var eventABI = {}
@@ -85,9 +85,9 @@ class EventsDecoder {
   }
 
   _decodeEvents (tx, logs, contractName, compiledContracts, cb) {
-    console.log('@eventsDecoder.js _decodeEvents')
+    // console.log('@eventsDecoder.js _decodeEvents')
     var eventsABI = this._eventsABI(compiledContracts)
-    console.log('* eventsABI: ', eventsABI)
+    // console.log('* eventsABI: ', eventsABI)
     var events = []
     for (var i in logs) {
       // [address, topics, mem]
@@ -95,9 +95,9 @@ class EventsDecoder {
       var topicId = log.topics[0]
       var abi = this._event(topicId.replace('0x', ''), eventsABI)
       if (abi) {
-        console.log('* i: ', i)
-        console.log('* abi: ', abi)
-        console.log('* log: ', log)
+        // console.log('* i: ', i)
+        // console.log('* abi: ', abi)
+        // console.log('* log: ', log)
         if (abi.vm === 'ielevm') {
           if (abi.sourceLanguage === 'solidity') {
             let data = log.data.replace(/^0x/, '')
@@ -125,7 +125,10 @@ class EventsDecoder {
               console.log('- stringResult: ', stringResult)
               events.push({ from: log.address, topic: topicId, event: abi.event, args: stringResult })
             }
-          }
+          } 
+          // else {
+          //   events.push({ from: log.address, topic: topicId, event: abi.event, data: log.data})
+          // }
         } else { // evm & solidity
           events.push({ from: log.address, topic: topicId, event: abi.event, args: abi.object.parse(log.topics, log.data) })
         }
