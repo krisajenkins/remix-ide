@@ -397,6 +397,9 @@ class TxListener {
       if (isIeleVM) {
         bytes = contract.object.ielevm.bytecode.object.toLowerCase()
         codeToResolve = codeToResolve.toLowerCase()
+        if (isCreation) { // constructor
+          codeToResolve = '0x' + RLP.decode(codeToResolve)[0].toString('hex')
+        }
         // console.log('- codeToResolve: ', codeToResolve)
         // console.log('- bytes: ', bytes)
       } else {

@@ -399,7 +399,7 @@ function Compiler (handleImportCall) {
                   } catch(error) {
                     return reject(error)
                   }
-                }, 3000)
+                }, 1000)
               })
             } else {
               throw error
