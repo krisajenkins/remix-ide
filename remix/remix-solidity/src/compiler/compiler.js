@@ -127,6 +127,9 @@ function Compiler (handleImportCall) {
       const response1 = await window['fetch'](apiGateway, {
         method: 'POST',
         cors: true,
+        headers: {
+          'content-type': 'application/json'
+        },
         body: JSON.stringify({
           method: 'sol2iele_asm',
           params: params,
@@ -168,6 +171,9 @@ function Compiler (handleImportCall) {
       const response2 = await window['fetch'](apiGateway, {
         method: 'POST',
         cors: true,
+        headers: {
+          'content-type': 'application/json'
+        },
         body: JSON.stringify({
           method: 'iele_asm',
           params: [newTarget, {[newTarget]: ieleCode}],
@@ -220,6 +226,9 @@ function Compiler (handleImportCall) {
       const response3 = await window['fetch'](apiGateway, {
         method: 'POST',
         cors: true,
+        headers: {
+          'content-type': 'application/json'
+        },
         body: JSON.stringify({
           method: 'sol2iele_abi',
           params: params,
@@ -281,6 +290,9 @@ function Compiler (handleImportCall) {
     window['fetch'](apiGateway, {
       method: 'POST',
       cors: true,
+      headers: {
+        'content-type': 'application/json'
+      },
       body: JSON.stringify({
         method: 'iele_asm',
         params: params,
