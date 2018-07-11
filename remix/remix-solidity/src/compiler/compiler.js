@@ -126,9 +126,9 @@ function Compiler (handleImportCall) {
       // get IELE assembly
       const response1 = await window['fetch'](apiGateway, {
         method: 'POST',
-        cors: true,
+        mode: 'cors',
         headers: {
-          'content-type': 'application/json'
+          'content-type': 'application/json',
         },
         body: JSON.stringify({
           method: 'sol2iele_asm',
@@ -170,7 +170,7 @@ function Compiler (handleImportCall) {
       // Get IELE Binary code
       const response2 = await window['fetch'](apiGateway, {
         method: 'POST',
-        cors: true,
+        mode: 'cors',
         headers: {
           'content-type': 'application/json'
         },
@@ -225,7 +225,7 @@ function Compiler (handleImportCall) {
       // Get Solidity ABI 
       const response3 = await window['fetch'](apiGateway, {
         method: 'POST',
-        cors: true,
+        mode: 'cors',
         headers: {
           'content-type': 'application/json'
         },
@@ -289,7 +289,7 @@ function Compiler (handleImportCall) {
     }
     window['fetch'](apiGateway, {
       method: 'POST',
-      cors: true,
+      mode: 'cors',
       headers: {
         'content-type': 'application/json'
       },
