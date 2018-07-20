@@ -15,7 +15,7 @@ if (typeof window !== 'undefined' && typeof window.web3 !== 'undefined') {
   injectedProvider = window.web3.currentProvider
   web3 = new Web3(injectedProvider)
 } else {
-  web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8545'))
+  web3 = new Web3(/*new Web3.providers.HttpProvider('http://localhost:8545')*/) // @rv: no need to set provider at start. `run_tab.js` will trigger the event to set provider on init.
 }
 
 var blankWeb3 = new Web3()
