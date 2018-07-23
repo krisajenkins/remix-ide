@@ -51,8 +51,13 @@ function RighthandPanel (appAPI = {}, events = {}, opts = {}) {
   optionViews.appendChild(settingsTab.render())
   var analysisTab = new AnalysisTab(appAPI, events, opts)
   optionViews.appendChild(analysisTab.render())
+  /**
+   * @rv: disable debugger for now
+   */
+  /*
   var debuggerTab = new DebuggerTab(appAPI, events, opts)
   optionViews.appendChild(debuggerTab.render())
+  */
   var supportTab = new SupportTab(appAPI, events, opts)
   optionViews.appendChild(supportTab.render())
   // @rv: disable testTab
@@ -62,7 +67,8 @@ function RighthandPanel (appAPI = {}, events = {}, opts = {}) {
   this._view.tabbedMenu.addTab('Run', 'runView', optionViews.querySelector('#runTabView'))
   this._view.tabbedMenu.addTab('Settings', 'settingsView', optionViews.querySelector('#settingsView'))
   this._view.tabbedMenu.addTab('Analysis', 'staticanalysisView', optionViews.querySelector('#staticanalysisView'))
-  this._view.tabbedMenu.addTab('Debugger', 'debugView', optionViews.querySelector('#debugView'))
+  // @rv: disable debugger
+  // this._view.tabbedMenu.addTab('Debugger', 'debugView', optionViews.querySelector('#debugView'))
   this._view.tabbedMenu.addTab('Support', 'supportView', optionViews.querySelector('#supportView'))
   // @rv: disable testTab
   // this._view.tabbedMenu.addTab('Test', 'testView', optionViews.querySelector('#testView'))

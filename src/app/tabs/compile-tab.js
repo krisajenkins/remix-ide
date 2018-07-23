@@ -174,7 +174,7 @@ module.exports = class CompileTab {
               <span class="${css.autocompileText}">Auto compile</span>
               ${self._view.warnCompilationSlow}
             </div>
-            <div class="${css.compileToIELEContainer}">
+            <div class="${css.compileToIELEContainer}" style="display:none;">
               ${self._view.compileToIELE}
               <span>Compile to IELE</span>
             </div>
@@ -376,6 +376,7 @@ const css = csjs`
     ${styles.rightPanel.compileTab.button_Publish};
     margin-left: 2%;
     width: 120px;
+    display: none !important; /* @rv: disable (hide) "Publish on Swarm" button */
   }
   .log {
     ${styles.rightPanel.compileTab.box_CompileContainer};

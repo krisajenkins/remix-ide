@@ -103,6 +103,7 @@ class TxListener {
         this.extendTransactionForIELE(tx, data, lookupOnly, txResult, payload)
         tx.envMode = executionContext.getProvider()
         tx.status = txResult.result.status // 0x0 or 0x1
+        tx.statusCode = txResult.result.statusCode
         this._resolve([tx], () => {})
       })
     })

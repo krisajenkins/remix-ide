@@ -95,7 +95,7 @@ module.exports = class SettingsTab {
     self._view.config.general = yo`
       <div class="${css.info}">
           <div class=${css.title}>General settings</div>
-          <div class="${css.crow}">
+          <div class="${css.crow}" style="display:none;">
             <div>${self._view.optionVM}</div>
             <span class="${css.checkboxText}">Always use Ethereum VM at Load</span>
           </div>

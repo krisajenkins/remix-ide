@@ -120,6 +120,8 @@ function runTab (appAPI = {}, appEvents = {}, opts = {}) {
   }
 
   function setFinalContext () {
+    // @rv: toggle RV elements
+    toggleRVElements() 
     // set the final context. Cause it is possible that this is not the one we've originaly selected
     selectExEnv.value = executionContext.getProvider()
     fillAccountsList(appAPI, opts, el)
@@ -159,7 +161,6 @@ function runTab (appAPI = {}, appEvents = {}, opts = {}) {
 
   selectExEnv.value = executionContext.getProvider()
   executionContext.event.register('contextChanged', (context, silent) => {
-    toggleRVElements()
     setFinalContext()
   })
 
@@ -312,7 +313,7 @@ function contractDropdown (events, appAPI, appEvents, opts, self) {
   instanceContainer.appendChild(self._view.noInstancesText)
   var compFails = yo`<i title="Contract compilation failed. Please check the compile tab for more information." class="fa fa-times-circle ${css.errorIcon}" ></i>`
   appEvents.compiler.register('compilationFinished', function (success, data, source) {
-    // @rv: toggle elements
+    // @rv: toggle RV elements
     toggleRVElements()
     getContractNames(success, data)
     if (success) {
@@ -523,26 +524,14 @@ function settings (container, appAPI, appEvents, opts) {
       <div class=${css.environment}>
         ${net}
         <select id="selectExEnvOptions" onchange=${updateNetwork} class="${css.select}">
-          <option id="vm-mode"
-            title="Execution environment does not connect to any node, everything is local and in memory only."
-            value="vm" checked name="executionContext"> JavaScript VM
+          <option 
+            title="IELE Testnet"
+            value="custom-rpc-iele-testnet" name="executionContext"
+            selected> IELE Testnet
           </option>
-          <option id="injected-mode"
-            title="Execution environment has been provided by Metamask or similar provider."
-            value="injected" name="executionContext"> Injected Web3
-          </option>
-          <option id="web3-mode"
-            title="Execution environment connects to node at localhost (or via IPC if available), transactions will be sent to the network and can cause loss of money or worse!
-            If this page is served via https and you access your node via http, it might not work. In this case, try cloning the repository and serving it via http."
-            value="web3" name="executionContext"> Web3 Provider
-          </option>
-          ${(opts.config.get('custom-rpc-list') || []).map((customRPC)=> yo`
-          <option title="Custom RPC connection."
-            value="${customRPC.context}" name="executionContext"> ${customRPC.name}
-          </option>`)}
         </select>
         <a href="https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md" target="_blank"><i class="${css.icon} fa fa-info"></i></a>
-        <i id="remove-custom-rpc-icon" class="${css.icon} fa fa-times" title="Remove selected Custom RPC" onclick=${removeCustomRPC}></i>
+        <i id="remove-custom-rpc-icon" class="${css.icon} fa fa-times" title="Remove selected Custom RPC" style="display:none;" onclick=${removeCustomRPC}></i>
       </div>
     </div>
   `
@@ -550,7 +539,7 @@ function settings (container, appAPI, appEvents, opts) {
   var environmentExtraEl = yo`
     <div id="environment-extra-section">
       <div class="${css.crow}">
-        <div class="${css.rvButton}" style="margin-left:0;width:164px;background-color:hsla(45, 100%, 75%, 0.5);" onclick=${connectToCustomRPC}>Connect to Custom RPC</div>
+        <div class="${css.rvButton}" style="margin-left:0;width:164px;background-color:hsla(45,100%,75%,0.5);display:none;" onclick=${connectToCustomRPC}>Connect to Custom RPC</div>
       </div>
     </div>`
 
@@ -563,7 +552,8 @@ function settings (container, appAPI, appEvents, opts) {
     </div>
   `
 
-  var accountElExtra = yo`
+  const requestFundsIcon = yo`<i class="fa fa-refresh ${css.requestFundsIcon}" aria-hidden="true"></i>`
+  const accountElExtra = yo`
     <div id="account-extra-section">
       <div class="${css.crow}">
         <div class="${css.rvButton}" style="margin-bottom:0;margin-left:0;" onclick=${exportPrivateKey}>Export private key</div>
@@ -573,7 +563,7 @@ function settings (container, appAPI, appEvents, opts) {
       <div class="${css.crow}">
         <div class="${css.rvButton}" style="margin-left:0;background-color:hsla(45, 100%, 75%, 0.5);" onclick=${importAccount}>Import account</div>
         <div class="${css.rvButton}" style="background-color:hsla(45, 100%, 75%, 0.5);" onclick=${newAccount}>Create account</div>
-        <div class="${css.rvButton}" style="background-color:hsla(45, 100%, 75%, 0.5);" onclick=${requestFromFaucet} id="request-from-faucet-btn">Request funds</div>
+        <div class="${css.rvButton}" style="background-color:hsla(45, 100%, 75%, 0.5);" onclick=${requestFromFaucet} id="request-from-faucet-btn">${requestFundsIcon}Get funds</div>
       </div>
     </div>
   `
@@ -644,6 +634,9 @@ function settings (container, appAPI, appEvents, opts) {
     if (address === 'unknown' || !address) {
       return addTooltip('No account selected')
     }
+    if (requestFundsIcon.classList.contains(css.spinningIcon)) { // requesting funds
+      return addTooltip('Your request is being processed')
+    }
     const context = executionContext.getProvider()
     let targetUrl = '',
         txLink = ''
@@ -657,23 +650,28 @@ function settings (container, appAPI, appEvents, opts) {
       return addTooltip('No faucet found for ' + context)
     }
     appAPI.logMessage(`request from Faucet pending...`)
-    window['fetch'](targetUrl, {
-      method: 'POST',
-      cors: true
-    }).then((response)=> {
-      return response.text()
-    }).then((receipt)=> {
-      if (!isNaN(receipt)) {
-        txLink = `${txLink}${receipt}`
-        appAPI.logMessage(`your transaction has been successful and funds have been sent to your wallet`)
-        appAPI.logHtmlMessage(yo`<a href="${txLink}" target="_blank">${txLink}</a>`)
-        updateAccountBalances(container, appAPI)
-      } else {
-        throw receipt
-      }
-    }).catch((error)=> {
-      appAPI.logMessage(`request from Faucet errored: ${error}`)
-    })
+    requestFundsIcon.classList.add(css.spinningIcon)
+    setTimeout(()=> { // Delay the request for a bit.
+      window['fetch'](targetUrl, {
+        method: 'POST',
+        cors: true
+      }).then((response)=> {
+        return response.text()
+      }).then((receipt)=> {
+        requestFundsIcon.classList.remove(css.spinningIcon)
+        if (!isNaN(receipt)) {
+          txLink = `${txLink}${receipt}`
+          appAPI.logMessage(`your transaction has been successful and funds have been sent to your wallet`)
+          appAPI.logHtmlMessage(yo`<a href="${txLink}" target="_blank">${txLink}</a>`)
+          updateAccountBalances(container, appAPI)
+        } else {
+          throw receipt
+        }
+      }).catch((error)=> {
+        requestFundsIcon.classList.remove(css.spinningIcon)
+        appAPI.logMessage(`request from Faucet errored: ${error}`)
+      })
+    }, 1500)
   }
 
   // @rv: remove account
@@ -799,6 +797,7 @@ function settings (container, appAPI, appEvents, opts) {
       }
     }
 
+    /*
     addIfNotExists({
       name: 'KEVM Testnet',
       context: 'custom-rpc-kevm-testnet',
@@ -806,6 +805,7 @@ function settings (container, appAPI, appEvents, opts) {
       rpcUrl: 'https://kevm-testnet.iohkdev.io:8546/',
       vm: 'evm'
     })
+    */
 
     addIfNotExists({
       name: 'IELE Testnet',
@@ -826,14 +826,15 @@ function settings (container, appAPI, appEvents, opts) {
 function toggleRVElements() {
   if (executionContext.isCustomRPC()) {
     $('#account-extra-section').show()
-    $('#remove-custom-rpc-icon').show()
 
     const context = executionContext.getProvider()
     if (context === 'custom-rpc-kevm-testnet' || 
         context === 'custom-rpc-iele-testnet') {
       $('#request-from-faucet-btn').show()
+      $('#remove-custom-rpc-icon').hide()
     } else {
       $('#request-from-faucet-btn').hide()
+      $('#remove-custom-rpc-icon').show()
     }
   } else {
     $('#account-extra-section').hide()

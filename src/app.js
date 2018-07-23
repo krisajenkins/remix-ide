@@ -866,11 +866,14 @@ Please make a backup of your contracts and start using http://remix.ethereum.org
       return offsetToLineColumnConverter.offsetToLineColumn(location, file, compiler.lastCompilationResult)
     }
   }
+  // @rv: disable debugger
+  /*
   var transactionDebugger = new Debugger('#debugger', debugAPI, editor.event)
   transactionDebugger.addProvider('vm', executionContext.vm())
   transactionDebugger.addProvider('injected', executionContext.internalWeb3())
   transactionDebugger.addProvider('web3', executionContext.internalWeb3())
   transactionDebugger.switchProvider(executionContext.getProvider())
+  */
 
   var txLogger = new TxLogger({
     api: {
@@ -895,7 +898,8 @@ Please make a backup of your contracts and start using http://remix.ethereum.org
   })
 
   function runCompiler () {
-    if (transactionDebugger.isActive) return
+    // @rv: disable debugger
+    // if (transactionDebugger.isActive) return
 
     fileManager.saveCurrentFile()
     editor.clearAnnotations()
@@ -991,7 +995,10 @@ Please make a backup of your contracts and start using http://remix.ethereum.org
   })
 
   function startdebugging (txHash) {
+    // @rv: disable debugger
+    /*
     self.event.trigger('debuggingRequested', [])
     transactionDebugger.debug(txHash)
+    */
   }
 }

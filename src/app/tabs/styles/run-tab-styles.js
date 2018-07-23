@@ -187,6 +187,13 @@ var css = csjs`
     color: ${styles.appProperties.errorText_Color};
     margin-left: 15px;
   }
+  .requestFundsIcon {
+    margin-right: 3%;
+  }
+  .spinningIcon {
+    margin-right: .3em;
+    animation: spin 2s linear infinite;
+  }
   .failDesc {
     color: ${styles.appProperties.errorText_Color};
     padding-left: 10px;
@@ -220,6 +227,11 @@ var css = csjs`
     ${styles.rightPanel.runTab.button_atAddress}
     width: 122px;
     margin: 4px;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
   }
 `
 

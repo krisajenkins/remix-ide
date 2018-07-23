@@ -120,6 +120,7 @@ var css = csjs`
     margin-left: auto;
   }
   .debug {
+    display: none !important; /* @rv: disable debug button */
     ${styles.terminal.button_Log_Debug}
     width: 55px;
     min-width: 55px;
@@ -301,8 +302,9 @@ function renderEmptyBlock (self, data) {
 
 function checkTxStatus (tx, type) {
   if (tx.status === '0x1' ||
-      tx.status === '0x00' // IOHK network 0x00 means success
-  ) {
+      tx.status === true || // IOHK network status is boolean, statusCode is number. status `true` and statusCode `0x00` means success.
+      tx.statusCode === '0x00'
+    ) {
     return yo`<i class="${css.txStatus} ${css.succeeded} fa fa-check-circle"></i>`
   }
   if (type === 'call' ||
@@ -399,6 +401,7 @@ function txDetails (e, tx, data, obj) {
     table = createTable({
       hash: data.tx.hash,
       status: data.tx.status,
+      statusCode: data.tx.statusCode,
       isCall: data.tx.isCall,
       contractAddress: data.tx.contractAddress,
       data: data.tx,
@@ -423,7 +426,26 @@ function txDetails (e, tx, data, obj) {
 
 function createTable (opts) {
   var table = yo`<table class="${css.txTable}" id="txTable"></table>`
-  if (opts.status) {
+  if (opts.statusCode) { // @rv: check status code
+    const m = {
+      '0x00': 'success',
+      '0x01': 'function does not exist',
+      '0x02': 'function has wrong signature',
+      '0x03': 'function does not exist on empty account',
+      '0x04': 'execution of instructions led to failure',
+      '0x05': 'out of gas',
+      '0x06': 'deploying to an account that already exists',
+      '0x07': 'insufficient balance to transfer',
+      '0x08': 'negative balance or gas limit or call depth exceeded',
+      '0x09': 'contract being uploaded to blockchain is not well formed',
+    }
+    const msg = m[opts.statusCode]
+    table.appendChild(yo`
+    <tr class="${css.tr}">
+      <td class="${css.td}"> status </td>
+      <td class="${css.td}">${opts.statusCode}${msg ? ` - ${msg}` : ''}</td>
+    </tr>`)
+  } else if (opts.status) {
     var msg = ''
     if (opts.status === '0x0') {
       msg = ' Transaction mined but execution failed'

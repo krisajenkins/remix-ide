@@ -88,6 +88,8 @@ function ExecutionContext () {
 
   this.init = function (config) {
     this.config = config // @rv: save config to this object scope
+    return executionContext = 'custom-rpc-iele-testnet'
+    /*
     if (config.get('settings/always-use-vm')) {
       executionContext = 'vm'
     } else if (config.get('history/execution-context')) {
@@ -95,6 +97,7 @@ function ExecutionContext () {
     } else {
       executionContext = injectedProvider ? 'injected' : 'vm'
     }
+    */
   }
 
   // @rv: save password for address temporarily
